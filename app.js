@@ -2163,3 +2163,11 @@ window.addEventListener('resize', resizeCanvas);
 if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.7 } });
 updateThemeToggle();
 resizeCanvas();
+
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // The app remains fully usable when a host does not support service workers.
+    });
+  });
+}
