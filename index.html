@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('image-cropper-theme');
+      document.documentElement.dataset.theme = savedTheme === 'light' || savedTheme === 'dark'
+        ? savedTheme
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    } catch {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  </script>
+  <title>裁切台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="裁切台主页">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+        <span>裁切台</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换至亮色主题" aria-pressed="true" title="切换至亮色主题">
+          <i class="theme-icon theme-icon--sun" data-lucide="sun" aria-hidden="true"></i>
+          <i class="theme-icon theme-icon--moon" data-lucide="moon" aria-hidden="true"></i>
+        </button>
+        <button class="export-button" id="exportButton" type="button" disabled aria-label="导出图片">
+          <i data-lucide="download" aria-hidden="true"></i><span id="headerExportLabel">导出</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="workspace" id="top">
+      <aside class="left-rail" aria-label="图片与裁切设置">
+        <section class="rail-section source-section">
+          <div class="section-heading"><span>源文件</span><span class="label-count" id="fileCount">--</span></div>
+          <label class="upload-drop" id="uploadDrop" for="fileInput">
+            <i data-lucide="image-up" aria-hidden="true"></i>
+            <span class="upload-title">选择图片</span>
+            <span class="upload-hint">JPG, PNG, WEBP</span>
+          </label>
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+          <div class="file-row is-empty" id="fileRow">
+            <div class="file-thumb"><i data-lucide="image" aria-hidden="true"></i></div>
+            <div class="file-meta">
+              <strong id="fileName">尚未选择</strong>
+              <span id="fileInfo">等待图片</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>裁切比例</span></div>
+          <div class="ratio-list" role="radiogroup" aria-label="裁切比例">
+            <button class="ratio-option is-selected" type="button" data-ratio="source" aria-checked="true" role="radio"><span
+                class="ratio-icon ratio-icon--portrait"></span><span>原图</span></button>
+            <button class="ratio-option" type="button" data-ratio="1" aria-checked="false" role="radio"><span
+                class="ratio-icon ratio-icon--square"></span><span>1:1</span></button>
+            <button class="ratio-option" type="button" data-ratio="0.8" aria-checked="false" role="radio"><span
+                class="ratio-icon ratio-icon--portrait"></span><span>4:5</span></button>
+            <button class="ratio-option" type="button" data-ratio="1.5" aria-checked="false" role="radio"><span
+                class="ratio-icon ratio-icon--landscape"></span><span>3:2</span></button>
+            <button class="ratio-option" type="button" data-ratio="1.7777778" aria-checked="false" role="radio"><span
+                class="ratio-icon ratio-icon--wide"></span><span>16:9</span></button>
+            <button class="ratio-option" type="button" data-ratio="free" aria-checked="false" role="radio"><span
+                class="ratio-icon ratio-icon--free"></span><span>自由</span></button>
+          </div>
+        </section>
+
+        <section class="rail-section crop-mode">
+          <div class="section-heading"><span>导出模式</span></div>
+          <div class="mode-toggle" role="radiogroup" aria-label="导出模式">
+            <button class="mode-option is-selected" type="button" data-mode="single" role="radio"
+              aria-checked="true">单张</button>
+            <button class="mode-option" type="button" data-mode="nine" role="radio" aria-checked="false">九宫格</button>
+            <button class="mode-option" type="button" data-mode="smart" role="radio" aria-checked="false">智能选图</button>
+          </div>
+          <p class="mode-note" id="modeNote">导出当前裁切范围</p>
+          <div class="grid-controls is-hidden" id="gridControls" aria-label="分割线设置">
+            <div class="grid-tool-toggle" role="radiogroup" aria-label="九宫格操作">
+              <button class="grid-tool is-selected" id="gridEditMode" type="button" data-grid-tool="edit" role="radio"
+                aria-checked="true" title="编辑裁切线"><i data-lucide="pencil-ruler"
+                  aria-hidden="true"></i><span>编辑线条</span></button>
+              <button class="grid-tool" id="gridSelectMode" type="button" data-grid-tool="select" role="radio"
+                aria-checked="false" title="选择要导出的裁切内容"><i data-lucide="square-check-big"
+                  aria-hidden="true"></i><span>选择内容</span></button>
+            </div>
+            <button class="grid-action" id="addVerticalLine" type="button" title="新增竖向裁切线"><i data-lucide="columns-2"
+                aria-hidden="true"></i><span>竖线</span></button>
+            <button class="grid-action" id="addHorizontalLine" type="button" title="新增横向裁切线"><i data-lucide="rows-2"
+                aria-hidden="true"></i><span>横线</span></button>
+            <button class="grid-reset" id="resetGridLines" type="button" title="重置为九宫格" aria-label="重置为九宫格"><i
+                data-lucide="rotate-ccw" aria-hidden="true"></i></button>
+          </div>
+          <div class="smart-controls is-hidden" id="smartControls" aria-label="智能选图">
+            <button class="grid-action" id="analyzeSmart" type="button" title="分析裁切画面"><i data-lucide="scan-search"
+                aria-hidden="true"></i><span>分析图片</span></button>
+            <output class="smart-count" id="smartCount">未分析</output>
+          </div>
+          <div class="smart-candidates is-hidden" id="smartCandidates" aria-label="智能候选图片"></div>
+          <div class="smart-export-mode is-hidden" id="smartExportMode" role="radiogroup" aria-label="智能图框导出方式">
+            <span>图框导出</span>
+            <div class="smart-export-toggle">
+              <button class="smart-export-option is-selected" type="button" data-smart-export="bounds" role="radio"
+                aria-checked="true">外接矩形</button>
+              <button class="smart-export-option" type="button" data-smart-export="shape" role="radio"
+                aria-checked="false">保留图框</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-section bottom-note">
+          <i data-lucide="shield-check" aria-hidden="true"></i>
+          <span>文件仅在你的浏览器中处理</span>
+        </section>
+      </aside>
+
+      <section class="editor" aria-label="裁切画布">
+        <div class="editor-meta"><span id="canvasTitle">图片裁切</span><span id="zoomReadout">100%</span></div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="cropCanvas" aria-label="图片裁切画布"></canvas>
+          <div class="canvas-empty" id="canvasEmpty">
+            <i data-lucide="scan-line" aria-hidden="true"></i>
+            <label class="empty-upload" for="fileInput">拖入图片或点击添加</label>
+          </div>
+          <div class="canvas-drop-hint" id="canvasDropHint" aria-hidden="true">
+            <i data-lucide="image-up" aria-hidden="true"></i>
+            <span>松开以添加图片</span>
+          </div>
+        </div>
+        <div class="editor-foot"><span>拖动图片调整位置</span><span>拖动角点调整裁切范围</span></div>
+      </section>
+
+      <aside class="right-rail" aria-label="导出设置">
+        <section class="rail-section">
+          <div class="section-heading"><span>调整</span><span class="mono-label" id="rotationReadout">0deg</span></div>
+          <div class="control-block">
+            <label class="field-label" for="zoomRange">图片缩放</label>
+            <div class="range-row"><input id="zoomRange" type="range" min="1" max="3" step="0.01" value="1" /><output
+                id="zoomValue">100%</output></div>
+          </div>
+          <div class="icon-control-group" aria-label="旋转与翻转">
+            <button class="icon-control" id="rotateLeft" type="button" title="向左旋转" disabled><i data-lucide="rotate-ccw"
+                aria-hidden="true"></i></button>
+            <button class="icon-control" id="rotateRight" type="button" title="向右旋转" disabled><i data-lucide="rotate-cw"
+                aria-hidden="true"></i></button>
+            <span class="control-divider"></span>
+            <button class="icon-control" id="flipHorizontal" type="button" title="水平翻转" disabled><i
+                data-lucide="flip-horizontal-2" aria-hidden="true"></i></button>
+            <button class="icon-control" id="flipVertical" type="button" title="垂直翻转" disabled><i
+                data-lucide="flip-vertical-2" aria-hidden="true"></i></button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>输出尺寸</span><button class="link-button" id="matchRatio"
+              type="button">适配比例</button></div>
+          <div class="size-fields">
+            <label><span>宽度</span>
+              <div><input id="outputWidth" type="number" min="1" max="10000" value="1600"
+                  inputmode="numeric" /><em>px</em></div>
+            </label>
+            <span class="size-link"><i data-lucide="link" aria-hidden="true"></i></span>
+            <label><span>高度</span>
+              <div><input id="outputHeight" type="number" min="1" max="10000" value="1600"
+                  inputmode="numeric" /><em>px</em></div>
+            </label>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>文件格式</span></div>
+          <div class="format-toggle" role="radiogroup" aria-label="导出文件格式">
+            <button class="format-option is-selected" type="button" data-format="image/png" role="radio"
+              aria-checked="true">PNG</button>
+            <button class="format-option" type="button" data-format="image/jpeg" role="radio"
+              aria-checked="false">JPG</button>
+          </div>
+          <div class="quality-control" id="qualityControl">
+            <label class="field-label" for="qualityRange">质量</label>
+            <div class="range-row"><input id="qualityRange" type="range" min="0.5" max="1" step="0.01"
+                value="0.92" /><output id="qualityValue">92%</output></div>
+          </div>
+        </section>
+
+        <section class="export-summary" aria-label="当前导出规格">
+          <div><span>导出</span><strong id="exportSpec">1600 x 1600 px</strong></div>
+          <div><span>格式</span><strong id="exportFormat">PNG</strong></div>
+        </section>
+        <button class="wide-export" id="wideExportButton" type="button" disabled><i data-lucide="download"
+            aria-hidden="true"></i><span id="wideExportLabel">导出图片</span></button>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
