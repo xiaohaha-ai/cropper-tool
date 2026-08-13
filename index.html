@@ -24,10 +24,16 @@
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="裁切台主页">
-        <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
-        <span>裁切台</span>
-      </a>
+      <div class="topbar-branding">
+        <a class="brand" href="#top" aria-label="裁切台主页">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+          <span>裁切台</span>
+        </a>
+        <nav class="product-nav" aria-label="工具导航">
+          <a class="product-nav__item is-active" href="./" aria-current="page">裁切</a>
+          <a class="product-nav__item" href="watermark.html">去水印</a>
+        </nav>
+      </div>
       <div class="topbar-actions">
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换至亮色主题" aria-pressed="true" title="切换至亮色主题">
           <i class="theme-icon theme-icon--sun" data-lucide="sun" aria-hidden="true"></i>
@@ -169,7 +175,8 @@
               <div><input id="outputWidth" type="number" min="1" max="10000" value="1600"
                   inputmode="numeric" /><em>px</em></div>
             </label>
-            <span class="size-link"><i data-lucide="link" aria-hidden="true"></i></span>
+            <button class="size-link is-linked" id="outputSizeLink" type="button" aria-pressed="true"
+              aria-label="取消宽高关联" title="宽高已关联，点击解除"><i data-lucide="link" aria-hidden="true"></i></button>
             <label><span>高度</span>
               <div><input id="outputHeight" type="number" min="1" max="10000" value="1600"
                   inputmode="numeric" /><em>px</em></div>

@@ -21,6 +21,7 @@ const controls = {
   flipVertical: document.querySelector('#flipVertical'),
   outputWidth: document.querySelector('#outputWidth'),
   outputHeight: document.querySelector('#outputHeight'),
+  outputSizeLink: document.querySelector('#outputSizeLink'),
   matchRatio: document.querySelector('#matchRatio'),
   quality: document.querySelector('#qualityRange'),
   qualityValue: document.querySelector('#qualityValue'),
@@ -62,6 +63,7 @@ const state = {
   flipY: 1,
   imageOffset: { x: 0, y: 0 },
   format: 'image/png',
+  outputSizeLinked: true,
   mode: 'single',
   quality: 0.92,
   interaction: null,
@@ -301,13 +303,13 @@ function resizeCanvas() {
   draw();
 }
 
-function setCropForRatio(preserveCenter = false) {
+function setCropForRatio(preserveCenter = false, explicitRatio = ratioValue(), shouldSyncOutput = true) {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   if (!width || !height) return;
   const maxWidth = Math.max(MIN_CROP_SIZE, width - CROP_PADDING * 2);
   const maxHeight = Math.max(MIN_CROP_SIZE, height - CROP_PADDING * 2);
-  const ratio = ratioValue();
+  const ratio = explicitRatio;
   let cropWidth;
   let cropHeight;
   if (ratio) {
@@ -327,7 +329,7 @@ function setCropForRatio(preserveCenter = false) {
   clampCrop();
   if (state.image) {
     clampImagePosition();
-    syncOutputSize();
+    if (shouldSyncOutput) syncOutputSize();
   }
 }
 
@@ -1017,8 +1019,36 @@ function loadFile(file) {
   image.src = state.imageUrl;
 }
 
-function syncOutputSize(changed = 'width') {
+function updateOutputSizeLink() {
+  const linked = state.outputSizeLinked;
+  controls.outputSizeLink.classList.toggle('is-linked', linked);
+  controls.outputSizeLink.setAttribute('aria-pressed', String(linked));
+  controls.outputSizeLink.setAttribute('aria-label', linked ? '取消宽高关联' : '关联宽高');
+  controls.outputSizeLink.title = linked ? '宽高已关联，点击解除' : '宽高已解除，点击关联';
+}
+
+function fitCropToOutputSize() {
   if (!state.image) return;
+  const width = Math.max(1, Number(controls.outputWidth.value) || 1);
+  const height = Math.max(1, Number(controls.outputHeight.value) || 1);
+  state.ratio = 'free';
+  updateRatioOptions();
+  setCropForRatio(true, width / height, false);
+  clampImagePosition();
+  updateUi();
+  draw();
+}
+
+function syncOutputSize(changed = 'width', force = false, updatePreview = false) {
+  if (!state.image) {
+    updateExportSummary();
+    return;
+  }
+  if (!state.outputSizeLinked && !force) {
+    if (updatePreview) fitCropToOutputSize();
+    updateExportSummary();
+    return;
+  }
   const cropRatio = currentCropRatio();
   const width = Math.max(1, Number(controls.outputWidth.value) || round(state.image.naturalWidth));
   const height = Math.max(1, Number(controls.outputHeight.value) || round(state.image.naturalHeight));
@@ -1028,6 +1058,12 @@ function syncOutputSize(changed = 'width') {
     controls.outputHeight.value = round(width / cropRatio);
   }
   updateExportSummary();
+}
+
+function toggleOutputSizeLink() {
+  state.outputSizeLinked = !state.outputSizeLinked;
+  updateOutputSizeLink();
+  if (state.outputSizeLinked) syncOutputSize('width', true);
 }
 
 function updateExportSummary() {
@@ -2115,9 +2151,10 @@ controls.flipVertical.addEventListener('click', () => { state.flipY *= -1; clear
 controls.export.addEventListener('click', exportImage);
 controls.wideExport.addEventListener('click', exportImage);
 controls.themeToggle.addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
-controls.outputWidth.addEventListener('change', () => syncOutputSize('width'));
-controls.outputHeight.addEventListener('change', () => syncOutputSize('height'));
-controls.matchRatio.addEventListener('click', () => syncOutputSize('width'));
+controls.outputWidth.addEventListener('input', () => syncOutputSize('width', false, true));
+controls.outputHeight.addEventListener('input', () => syncOutputSize('height', false, true));
+controls.outputSizeLink.addEventListener('click', toggleOutputSizeLink);
+controls.matchRatio.addEventListener('click', () => syncOutputSize('width', true));
 document.addEventListener('keydown', (event) => {
   if (event.target instanceof Element && event.target.matches('input, textarea, select, [contenteditable="true"]')) return;
   if (event.code === 'Space') {
@@ -2162,6 +2199,7 @@ window.addEventListener('resize', resizeCanvas);
 
 if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.7 } });
 updateThemeToggle();
+updateOutputSizeLink();
 resizeCanvas();
 
 if ('serviceWorker' in navigator && window.isSecureContext) {

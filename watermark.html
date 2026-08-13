@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#171717" />
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('image-cropper-theme');
+      document.documentElement.dataset.theme = savedTheme === 'light' || savedTheme === 'dark'
+        ? savedTheme
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    } catch {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  </script>
+  <title>去水印 - 裁切台</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="app-shell watermark-app">
+    <header class="topbar">
+      <div class="topbar-branding">
+        <a class="brand" href="./" aria-label="裁切台主页">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+          <span>裁切台</span>
+        </a>
+        <nav class="product-nav" aria-label="工具导航">
+          <a class="product-nav__item" href="./">裁切</a>
+          <a class="product-nav__item is-active" href="watermark.html" aria-current="page">去水印</a>
+        </nav>
+      </div>
+      <div class="topbar-actions">
+        <button class="theme-toggle" id="watermarkThemeToggle" type="button" aria-label="切换至亮色主题" title="切换至亮色主题">
+          <i class="theme-icon theme-icon--sun" data-lucide="sun" aria-hidden="true"></i>
+          <i class="theme-icon theme-icon--moon" data-lucide="moon" aria-hidden="true"></i>
+        </button>
+        <button class="export-button" id="watermarkExport" type="button" disabled>
+          <i data-lucide="download" aria-hidden="true"></i><span>导出</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="watermark-workspace">
+      <aside class="left-rail watermark-left" aria-label="图片文件">
+        <section class="rail-section source-section">
+          <div class="section-heading"><span>源文件</span><span class="label-count" id="watermarkFileCount">--</span></div>
+          <label class="upload-drop" id="watermarkUploadDrop" for="watermarkFileInput">
+            <i data-lucide="image-up" aria-hidden="true"></i>
+            <span class="upload-title">选择图片</span>
+            <span class="upload-hint">JPG, PNG, WEBP</span>
+          </label>
+          <input id="watermarkFileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+          <div class="file-row is-empty" id="watermarkFileRow">
+            <div class="file-thumb" id="watermarkThumbnail"><i data-lucide="image" aria-hidden="true"></i></div>
+            <div class="file-meta">
+              <strong id="watermarkFileName">尚未选择</strong>
+              <span id="watermarkFileInfo">等待图片</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rail-section watermark-guide">
+          <div class="section-heading"><span>处理步骤</span></div>
+          <ol>
+            <li><span>1</span>标记水印区域</li>
+            <li><span>2</span>执行局部修复</li>
+            <li><span>3</span>检查并导出图片</li>
+          </ol>
+        </section>
+
+        <section class="rail-section bottom-note">
+          <i data-lucide="shield-check" aria-hidden="true"></i>
+          <span>文件仅在你的浏览器中处理</span>
+        </section>
+      </aside>
+
+      <section class="watermark-editor" aria-label="去水印画布">
+        <div class="editor-meta"><span id="watermarkCanvasTitle">去水印</span><span id="watermarkZoomReadout">100%</span></div>
+        <div class="watermark-canvas-wrap" id="watermarkCanvasWrap">
+          <canvas id="watermarkCanvas" aria-label="去水印编辑画布"></canvas>
+          <div class="canvas-empty" id="watermarkCanvasEmpty">
+            <i data-lucide="eraser" aria-hidden="true"></i>
+            <label class="empty-upload" for="watermarkFileInput">拖入图片或点击添加</label>
+          </div>
+          <div class="canvas-drop-hint" id="watermarkCanvasDropHint" aria-hidden="true">
+            <i data-lucide="image-up" aria-hidden="true"></i>
+            <span>松开以添加图片</span>
+          </div>
+        </div>
+        <div class="editor-foot"><span>在水印上涂抹或框选</span><span>标记只影响局部修复区域</span></div>
+      </section>
+
+      <aside class="right-rail watermark-right" aria-label="去水印设置">
+        <section class="rail-section watermark-smart-section">
+          <div class="section-heading"><span>智能识别</span><span class="mono-label" id="watermarkCandidateCount">未分析</span></div>
+          <button class="watermark-smart-scan" id="watermarkSmartScan" type="button" disabled><i data-lucide="scan-search" aria-hidden="true"></i><span>识别 AI 字样</span></button>
+          <div class="watermark-smart-actions is-hidden" id="watermarkSmartActions">
+            <button class="watermark-smart-apply" id="watermarkSmartApply" type="button">应用候选标记</button>
+            <button class="watermark-smart-clear" id="watermarkSmartClear" type="button" title="清除识别候选" aria-label="清除识别候选"><i data-lucide="x" aria-hidden="true"></i></button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>标记工具</span><span class="mono-label" id="watermarkMarkCount">未标记</span></div>
+          <div class="watermark-tool-toggle" role="radiogroup" aria-label="标记工具">
+            <button class="watermark-tool is-selected" type="button" data-watermark-tool="brush" role="radio" aria-checked="true">
+              <i data-lucide="brush" aria-hidden="true"></i><span>画笔</span>
+            </button>
+            <button class="watermark-tool" type="button" data-watermark-tool="box" role="radio" aria-checked="false">
+              <i data-lucide="square-dashed" aria-hidden="true"></i><span>框选</span>
+            </button>
+          </div>
+          <div class="control-block">
+            <label class="field-label" for="watermarkBrushSize">标记大小</label>
+            <div class="range-row"><input id="watermarkBrushSize" type="range" min="8" max="120" step="1" value="32" /><output id="watermarkBrushSizeValue">32 px</output></div>
+          </div>
+          <div class="watermark-actions">
+            <button class="watermark-action" id="watermarkUndo" type="button" disabled title="撤销上次标记"><i data-lucide="undo-2" aria-hidden="true"></i><span>撤销</span></button>
+            <button class="watermark-action" id="watermarkClear" type="button" disabled title="清除所有标记"><i data-lucide="trash-2" aria-hidden="true"></i><span>清除标记</span></button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>局部修复</span><span class="mono-label">本地处理</span></div>
+          <p class="watermark-description">适合背景较均匀、面积较小的文字或角标水印。请只覆盖水印本身。</p>
+          <button class="watermark-process" id="watermarkProcess" type="button" disabled><i data-lucide="sparkles" aria-hidden="true"></i><span>去除标记内容</span></button>
+          <button class="watermark-reset" id="watermarkReset" type="button" disabled>恢复原图</button>
+        </section>
+
+        <section class="rail-section">
+          <div class="section-heading"><span>导出格式</span></div>
+          <div class="format-toggle" role="radiogroup" aria-label="去水印导出格式">
+            <button class="watermark-format is-selected" type="button" data-watermark-format="image/png" role="radio" aria-checked="true">PNG</button>
+            <button class="watermark-format" type="button" data-watermark-format="image/jpeg" role="radio" aria-checked="false">JPG</button>
+          </div>
+          <div class="quality-control" id="watermarkQualityControl">
+            <label class="field-label" for="watermarkQuality">质量</label>
+            <div class="range-row"><input id="watermarkQuality" type="range" min="0.5" max="1" step="0.01" value="0.92" /><output id="watermarkQualityValue">92%</output></div>
+          </div>
+        </section>
+
+        <section class="export-summary" aria-label="去水印导出规格">
+          <div><span>导出</span><strong id="watermarkExportSpec">等待图片</strong></div>
+          <div><span>格式</span><strong id="watermarkExportFormat">PNG</strong></div>
+        </section>
+        <button class="wide-export" id="watermarkWideExport" type="button" disabled><i data-lucide="download" aria-hidden="true"></i><span>导出图片</span></button>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="watermarkToast" role="status" aria-live="polite"></div>
+  <script src="vendor/lucide.min.js"></script>
+  <script src="vendor/tesseract/tesseract.min.js"></script>
+  <script src="watermark.js"></script>
+</body>
+
+</html>
