@@ -72,7 +72,6 @@ let aiOcrWorkerPromise;
 let inpaintSessionPromise;
 
 const INPAINT_MODEL_URL = 'https://huggingface.co/andraniksargsyan/migan/resolve/main/migan_pipeline_v2.onnx';
-const ORT_VERSION = '1.17.3';
 const MAX_AI_IMAGE_EDGE = 1536;
 const MAX_AI_MARKED_PIXELS = 1100000;
 
@@ -528,17 +527,12 @@ async function loadInpaintSession() {
   if (inpaintSessionPromise) return inpaintSessionPromise;
   inpaintSessionPromise = (async () => {
     setModelStatus('正在准备本地 AI 修复引擎', 'loading');
-    if (!window.ort) {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/ort.min.js`;
-        script.onload = resolve;
-        script.onerror = () => reject(new Error('AI 运行时加载失败'));
-        document.head.appendChild(script);
-      });
-    }
-    window.ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`;
-    window.ort.env.wasm.proxy = true;
+    if (!window.ort) throw new Error('本地 AI 运行时未加载');
+    // GitHub Pages does not provide cross-origin isolation, so run the bundled
+    // SIMD runtime in a dependable single-threaded mode.
+    window.ort.env.wasm.wasmPaths = './vendor/onnxruntime/';
+    window.ort.env.wasm.numThreads = 1;
+    window.ort.env.wasm.proxy = false;
     const session = await window.ort.InferenceSession.create(INPAINT_MODEL_URL, { executionProviders: ['wasm'] });
     setModelStatus('AI 模型已就绪，图片仍仅在本地处理', 'ready');
     return session;
@@ -764,3 +758,11 @@ updateWatermarkTheme();
 chooseWatermarkTool('brush');
 updateWatermarkUi();
 resizeWatermarkCanvas();
+
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // The editor remains usable even when offline support is unavailable.
+    });
+  });
+}

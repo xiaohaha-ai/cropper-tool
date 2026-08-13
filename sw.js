@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cropper-static-v9';
+const CACHE_NAME = 'cropper-static-v10';
 const APP_SHELL = [
   './',
   './index.html',
@@ -12,6 +12,9 @@ const APP_SHELL = [
   './vendor/lucide.min.js',
   './vendor/tesseract/tesseract.min.js',
   './vendor/tesseract/worker.min.js',
+  './vendor/onnxruntime/ort.min.js',
+  './vendor/onnxruntime/ort-wasm-simd.wasm',
+  './vendor/onnxruntime/ort-wasm.wasm',
   './vendor/tesseract-core/tesseract-core.js',
   './vendor/tesseract-core/tesseract-core.wasm',
   './vendor/tesseract-core/tesseract-core.wasm.js',
@@ -43,5 +46,22 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  const appShellRequest = url.origin === self.location.origin
+    && (/\.(html|css|js)$/).test(url.pathname);
+
+  if (appShellRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
+
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });
