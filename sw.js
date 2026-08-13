@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cropper-static-v10';
+const CACHE_NAME = 'cropper-static-v11';
 const APP_SHELL = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const APP_SHELL = [
   './vendor/tesseract-core/tesseract-core-simd-lstm.wasm',
   './vendor/tesseract-core/tesseract-core-simd-lstm.wasm.js',
   './vendor/tesseract-lang/4.0.0/eng.traineddata.gz',
+  './vendor/tesseract-lang/4.0.0/chi_sim.traineddata.gz',
 ];
 
 self.addEventListener('install', (event) => {

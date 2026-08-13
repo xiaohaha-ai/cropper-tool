@@ -351,13 +351,12 @@ function clearWatermarkCandidates() {
 async function getAiOcrWorker() {
   if (!window.Tesseract) throw new Error('OCR 引擎未加载');
   if (!aiOcrWorkerPromise) {
-    aiOcrWorkerPromise = window.Tesseract.createWorker('eng', 1, {
+    aiOcrWorkerPromise = window.Tesseract.createWorker('chi_sim+eng', 1, {
       workerPath: './vendor/tesseract/worker.min.js',
       corePath: './vendor/tesseract-core',
       langPath: './vendor/tesseract-lang/4.0.0',
     }).then(async (worker) => {
       await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
         tessedit_pageseg_mode: '11',
       });
       return worker;
@@ -367,8 +366,8 @@ async function getAiOcrWorker() {
 }
 
 function aiTextCandidate(word) {
-  const value = String(word.text || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
-  return value.length >= 2;
+  const value = String(word.text || '').replace(/[\s\p{P}\p{S}]/gu, '');
+  return value.length >= 2 && Number(word.confidence || 0) >= 25;
 }
 
 async function detectWatermarkCandidates() {
@@ -394,13 +393,13 @@ async function detectWatermarkCandidates() {
         };
       })
       .slice(0, 12);
-    showWatermarkToast(watermarkState.candidates.length ? `识别到 ${watermarkState.candidates.length} 处文字候选` : '未识别到英文文字');
+    showWatermarkToast(watermarkState.candidates.length ? `识别到 ${watermarkState.candidates.length} 处中英文文字候选` : '未识别到中英文文字');
   } catch (error) {
     aiOcrWorkerPromise = undefined;
     watermarkState.candidates = [];
-    showWatermarkToast('英文文字识别未能启动，请刷新页面重试');
+    showWatermarkToast('中英文文字识别未能启动，请刷新页面重试');
   } finally {
-    watermarkControls.smartScan.querySelector('span').textContent = '扫描英文文字';
+    watermarkControls.smartScan.querySelector('span').textContent = '扫描中英文文字';
     updateWatermarkUi();
     drawWatermarkCanvas();
   }
