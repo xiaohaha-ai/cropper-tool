@@ -261,6 +261,10 @@ output { color: var(--paper); font-family: var(--mono); font-size: 11px; text-al
 /* Local watermark-removal workspace */
 .watermark-workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; }
 .watermark-editor { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(320px, 1fr) auto; background: var(--surface-editor); padding: 18px 22px 16px; gap: 14px; }
+.watermark-view-actions { display: inline-flex; align-items: center; gap: 7px; }
+.watermark-view-action { min-height: 26px; padding: 0 8px; border: 1px solid var(--line); background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-family: var(--mono); font-size: 10px; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
+.watermark-view-action svg { width: 13px; height: 13px; stroke-width: 1.8; }
+.watermark-view-action:not(:disabled):hover, .watermark-view-action[aria-pressed="true"] { color: var(--green-strong); border-color: var(--border-selected); background: var(--surface-selected); }
 .watermark-canvas-wrap { position: relative; min-height: 0; overflow: hidden; background: var(--surface-canvas); border: 1px solid var(--border-strong); display: grid; place-items: center; transition: border-color 160ms ease, box-shadow 160ms ease; }
 .watermark-canvas-wrap:has(.canvas-drop-hint.is-visible) { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
 #watermarkCanvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
@@ -275,6 +279,15 @@ output { color: var(--paper); font-family: var(--mono); font-size: 11px; text-al
 .watermark-smart-clear { width: 34px; padding: 0; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; }
 .watermark-smart-clear:hover { color: var(--text); border-color: var(--border-hover); }
 .watermark-smart-clear svg { width: 16px; height: 16px; }
+.watermark-engine-toggle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); margin-bottom: 13px; }
+.watermark-engine { min-width: 0; height: 35px; padding: 0 5px; border: 0; background: transparent; color: var(--muted); font-size: 11px; transition: color 160ms ease, background 160ms ease; }
+.watermark-engine + .watermark-engine { border-left: 1px solid var(--line); }
+.watermark-engine.is-selected { background: var(--surface-selected); color: var(--green-strong); }
+.watermark-model-status { min-height: 34px; margin: 0 0 11px; padding: 7px 8px; border-left: 2px solid var(--green); background: var(--surface-raised); color: var(--muted); display: flex; align-items: center; gap: 7px; font-size: 10px; line-height: 1.45; }
+.watermark-model-status.is-hidden { display: none; }
+.watermark-model-status.is-loading { border-color: var(--warning); color: var(--paper); }
+.watermark-model-status.is-ready { border-color: var(--green); color: var(--green-strong); }
+.watermark-model-status svg { width: 14px; height: 14px; flex: 0 0 14px; color: var(--green); }
 .watermark-tool-toggle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); margin-bottom: 17px; }
 .watermark-tool { height: 38px; border: 0; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; transition: background 160ms ease, color 160ms ease; }
 .watermark-tool + .watermark-tool { border-left: 1px solid var(--line); }
@@ -288,8 +301,10 @@ output { color: var(--paper); font-family: var(--mono); font-size: 11px; text-al
 .watermark-process { width: 100%; min-height: 40px; border: 0; background: var(--green); color: var(--green-ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; font-weight: 700; transition: background 160ms ease, transform 160ms ease; }
 .watermark-process svg { width: 16px; height: 16px; }
 .watermark-process:not(:disabled):hover { background: var(--green-strong); transform: translateY(-1px); }
-.watermark-reset { width: 100%; margin-top: 9px; min-height: 32px; border: 0; background: transparent; color: var(--muted-dark); font-size: 11px; }
+.watermark-repair-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 9px; }
+.watermark-reset { width: 100%; min-height: 32px; border: 1px solid transparent; background: transparent; color: var(--muted-dark); font-size: 11px; transition: border-color 160ms ease, color 160ms ease, background 160ms ease; }
 .watermark-reset:not(:disabled):hover { color: var(--text); }
+.watermark-reset:not(:disabled):hover { border-color: var(--line); background: var(--surface-raised); }
 .watermark-format { height: 36px; border: 0; background: transparent; color: var(--muted); font-family: var(--mono); font-size: 11px; }
 .watermark-format + .watermark-format { border-left: 1px solid var(--line); }
 .watermark-format.is-selected { background: var(--ink-raised); color: var(--green-strong); }

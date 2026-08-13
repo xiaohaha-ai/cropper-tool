@@ -23,7 +23,15 @@ const watermarkControls = {
   undo: document.querySelector('#watermarkUndo'),
   clear: document.querySelector('#watermarkClear'),
   process: document.querySelector('#watermarkProcess'),
+  processLabel: document.querySelector('#watermarkProcessLabel'),
   reset: document.querySelector('#watermarkReset'),
+  repairUndo: document.querySelector('#watermarkRepairUndo'),
+  engineStatus: document.querySelector('#watermarkEngineStatus'),
+  engineDescription: document.querySelector('#watermarkEngineDescription'),
+  modelStatus: document.querySelector('#watermarkModelStatus'),
+  compare: document.querySelector('#watermarkCompare'),
+  fit: document.querySelector('#watermarkFit'),
+  canvasStatus: document.querySelector('#watermarkCanvasStatus'),
   quality: document.querySelector('#watermarkQuality'),
   qualityValue: document.querySelector('#watermarkQualityValue'),
   qualityControl: document.querySelector('#watermarkQualityControl'),
@@ -44,19 +52,29 @@ const watermarkState = {
   quality: 0.92,
   tool: 'brush',
   brushSize: 32,
+  engine: 'quick',
+  processing: false,
   drawing: null,
   display: { x: 0, y: 0, width: 0, height: 0, scale: 1 },
   sourceCanvas: document.createElement('canvas'),
   resultCanvas: document.createElement('canvas'),
   maskCanvas: document.createElement('canvas'),
   maskHistory: [],
+  resultHistory: [],
   candidates: [],
   hasResult: false,
+  showOriginal: false,
 };
 const sourceCtx = watermarkState.sourceCanvas.getContext('2d', { willReadFrequently: true });
 const resultCtx = watermarkState.resultCanvas.getContext('2d', { willReadFrequently: true });
 const maskCtx = watermarkState.maskCanvas.getContext('2d', { willReadFrequently: true });
 let aiOcrWorkerPromise;
+let inpaintSessionPromise;
+
+const INPAINT_MODEL_URL = 'https://huggingface.co/andraniksargsyan/migan/resolve/main/migan_pipeline_v2.onnx';
+const ORT_VERSION = '1.17.3';
+const MAX_AI_IMAGE_EDGE = 1536;
+const MAX_AI_MARKED_PIXELS = 1100000;
 
 function currentWatermarkTheme() {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
@@ -113,8 +131,10 @@ function setWatermarkFile(file) {
     resultCtx.drawImage(image, 0, 0);
     maskCtx.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
     watermarkState.maskHistory = [];
+    watermarkState.resultHistory = [];
     watermarkState.candidates = [];
     watermarkState.hasResult = false;
+    watermarkState.showOriginal = false;
     watermarkControls.fileCount.textContent = '1 / 1';
     watermarkControls.fileName.textContent = file.name;
     watermarkControls.fileInfo.textContent = `${image.naturalWidth} x ${image.naturalHeight}`;
@@ -147,11 +167,13 @@ function drawWatermarkCanvas() {
   watermarkState.display = { x, y, width: displayWidth, height: displayHeight, scale };
   watermarkCtx.imageSmoothingEnabled = true;
   watermarkCtx.imageSmoothingQuality = 'high';
-  watermarkCtx.drawImage(watermarkState.resultCanvas, x, y, displayWidth, displayHeight);
-  watermarkCtx.save();
-  watermarkCtx.globalAlpha = 0.58;
-  watermarkCtx.drawImage(watermarkState.maskCanvas, x, y, displayWidth, displayHeight);
-  watermarkCtx.restore();
+  watermarkCtx.drawImage(watermarkState.showOriginal ? watermarkState.sourceCanvas : watermarkState.resultCanvas, x, y, displayWidth, displayHeight);
+  if (!watermarkState.showOriginal) {
+    watermarkCtx.save();
+    watermarkCtx.globalAlpha = 0.58;
+    watermarkCtx.drawImage(watermarkState.maskCanvas, x, y, displayWidth, displayHeight);
+    watermarkCtx.restore();
+  }
   drawWatermarkCandidates();
   if (watermarkState.drawing?.type === 'box') drawWatermarkBoxPreview(watermarkState.drawing);
 }
@@ -269,13 +291,48 @@ function updateWatermarkUi() {
   watermarkControls.smartApply.disabled = !selectedCandidates;
   watermarkControls.undo.disabled = !watermarkState.maskHistory.length;
   watermarkControls.clear.disabled = !marked;
-  watermarkControls.process.disabled = !marked;
+  watermarkControls.process.disabled = !marked || watermarkState.processing;
   watermarkControls.reset.disabled = !watermarkState.hasResult;
+  watermarkControls.repairUndo.disabled = !watermarkState.resultHistory.length || watermarkState.processing;
+  watermarkControls.compare.disabled = !hasImage;
+  watermarkControls.fit.disabled = !hasImage;
   watermarkControls.export.disabled = !hasImage;
   watermarkControls.wideExport.disabled = !hasImage;
   watermarkControls.exportSpec.textContent = hasImage ? `${watermarkState.image.naturalWidth} x ${watermarkState.image.naturalHeight} px` : '等待图片';
   watermarkControls.exportFormat.textContent = watermarkState.format === 'image/png' ? 'PNG' : 'JPG';
   watermarkControls.qualityControl.classList.toggle('is-hidden', watermarkState.format === 'image/png');
+  updateWatermarkEngineUi();
+}
+
+function updateWatermarkEngineUi() {
+  const ai = watermarkState.engine === 'ai';
+  watermarkControls.engineStatus.textContent = ai ? 'AI 本地' : '快速';
+  watermarkControls.engineDescription.textContent = ai
+    ? 'AI 修复会下载一次开源模型并缓存在浏览器。图像和标记均不会上传。'
+    : '快速修补适合纯色、渐变或简单纹理背景的小面积文字与角标。';
+  watermarkControls.processLabel.textContent = watermarkState.processing
+    ? (ai ? '正在 AI 修复' : '正在局部修补')
+    : (ai ? 'AI 修复标记区域' : '去除标记内容');
+  watermarkControls.canvasStatus.textContent = watermarkState.showOriginal
+    ? '正在查看原图'
+    : (watermarkState.hasResult ? '已完成修复，可按住原图对比' : '标记只影响局部修复区域');
+  document.querySelectorAll('[data-watermark-engine]').forEach((button) => {
+    const selected = button.dataset.watermarkEngine === watermarkState.engine;
+    button.classList.toggle('is-selected', selected);
+    button.setAttribute('aria-checked', String(selected));
+  });
+  watermarkControls.modelStatus.classList.toggle('is-hidden', !ai);
+}
+
+function setModelStatus(message, state = '') {
+  watermarkControls.modelStatus.classList.remove('is-loading', 'is-ready');
+  if (state) watermarkControls.modelStatus.classList.add(`is-${state}`);
+  watermarkControls.modelStatus.querySelector('span').textContent = message;
+}
+
+function chooseWatermarkEngine(engine) {
+  watermarkState.engine = engine;
+  updateWatermarkUi();
 }
 
 function candidateAt(point) {
@@ -312,7 +369,7 @@ async function getAiOcrWorker() {
 
 function aiTextCandidate(word) {
   const value = String(word.text || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
-  return value.includes('AI');
+  return value.length >= 2;
 }
 
 async function detectWatermarkCandidates() {
@@ -338,13 +395,13 @@ async function detectWatermarkCandidates() {
         };
       })
       .slice(0, 12);
-    showWatermarkToast(watermarkState.candidates.length ? `识别到 ${watermarkState.candidates.length} 处 AI 字样` : '未识别到 AI 字样');
+    showWatermarkToast(watermarkState.candidates.length ? `识别到 ${watermarkState.candidates.length} 处文字候选` : '未识别到英文文字');
   } catch (error) {
     aiOcrWorkerPromise = undefined;
     watermarkState.candidates = [];
-    showWatermarkToast('AI 文字识别未能启动，请刷新页面重试');
+    showWatermarkToast('英文文字识别未能启动，请刷新页面重试');
   } finally {
-    watermarkControls.smartScan.querySelector('span').textContent = '识别 AI 字样';
+    watermarkControls.smartScan.querySelector('span').textContent = '扫描英文文字';
     updateWatermarkUi();
     drawWatermarkCanvas();
   }
@@ -395,13 +452,41 @@ function resetWatermarkImage() {
   resultCtx.clearRect(0, 0, watermarkState.resultCanvas.width, watermarkState.resultCanvas.height);
   resultCtx.drawImage(watermarkState.image, 0, 0);
   watermarkState.hasResult = false;
+  watermarkState.resultHistory = [];
+  watermarkState.showOriginal = false;
   watermarkState.candidates = [];
   updateWatermarkUi();
   drawWatermarkCanvas();
   showWatermarkToast('已恢复原图');
 }
 
-function repairMarkedPixels() {
+function saveResultHistory() {
+  if (!watermarkState.image) return;
+  watermarkState.resultHistory.push(resultCtx.getImageData(0, 0, watermarkState.resultCanvas.width, watermarkState.resultCanvas.height));
+  if (watermarkState.resultHistory.length > 8) watermarkState.resultHistory.shift();
+}
+
+function undoWatermarkRepair() {
+  const previous = watermarkState.resultHistory.pop();
+  if (!previous) return;
+  resultCtx.putImageData(previous, 0, 0);
+  watermarkState.hasResult = watermarkState.resultHistory.length > 0 || !imageDataEqualsSource(previous);
+  watermarkState.showOriginal = false;
+  updateWatermarkUi();
+  drawWatermarkCanvas();
+  showWatermarkToast('已撤销上次修复');
+}
+
+function imageDataEqualsSource(imageData) {
+  const original = sourceCtx.getImageData(0, 0, watermarkState.sourceCanvas.width, watermarkState.sourceCanvas.height).data;
+  const sampleStep = Math.max(4, Math.floor(original.length / 1200));
+  for (let index = 0; index < original.length; index += sampleStep) {
+    if (original[index] !== imageData.data[index]) return false;
+  }
+  return true;
+}
+
+function repairMarkedPixelsQuick() {
   if (!watermarkState.image || !markedPixelCount()) return;
   const width = watermarkState.resultCanvas.width;
   const height = watermarkState.resultCanvas.height;
@@ -429,6 +514,7 @@ function repairMarkedPixels() {
       output[index + channel] = Math.round(samples.reduce((sum, sampleIndex) => sum + source.data[sampleIndex + channel], 0) / samples.length);
     });
   });
+  saveResultHistory();
   resultCtx.putImageData(new ImageData(output, width, height), 0, 0);
   maskCtx.clearRect(0, 0, width, height);
   watermarkState.maskHistory = [];
@@ -436,6 +522,123 @@ function repairMarkedPixels() {
   updateWatermarkUi();
   drawWatermarkCanvas();
   showWatermarkToast('已完成局部修复，请检查边缘效果');
+}
+
+async function loadInpaintSession() {
+  if (inpaintSessionPromise) return inpaintSessionPromise;
+  inpaintSessionPromise = (async () => {
+    setModelStatus('正在准备本地 AI 修复引擎', 'loading');
+    if (!window.ort) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/ort.min.js`;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('AI 运行时加载失败'));
+        document.head.appendChild(script);
+      });
+    }
+    window.ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`;
+    window.ort.env.wasm.proxy = true;
+    const session = await window.ort.InferenceSession.create(INPAINT_MODEL_URL, { executionProviders: ['wasm'] });
+    setModelStatus('AI 模型已就绪，图片仍仅在本地处理', 'ready');
+    return session;
+  })().catch((error) => {
+    inpaintSessionPromise = undefined;
+    setModelStatus('AI 模型暂不可用，可改用快速修补');
+    throw error;
+  });
+  return inpaintSessionPromise;
+}
+
+function getAiRepairScale() {
+  const { width, height } = watermarkState.resultCanvas;
+  const edgeScale = Math.min(1, MAX_AI_IMAGE_EDGE / Math.max(width, height));
+  const maskScale = Math.min(1, Math.sqrt(MAX_AI_MARKED_PIXELS / Math.max(1, markedPixelCount())));
+  return Math.min(edgeScale, maskScale);
+}
+
+function canvasImageData(canvas, width, height) {
+  const scratch = document.createElement('canvas');
+  scratch.width = width;
+  scratch.height = height;
+  const scratchCtx = scratch.getContext('2d', { willReadFrequently: true });
+  scratchCtx.drawImage(canvas, 0, 0, width, height);
+  return scratchCtx.getImageData(0, 0, width, height);
+}
+
+function rgbaToChw(imageData, channels) {
+  const { width, height, data } = imageData;
+  const result = new Uint8Array(channels * width * height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const pixel = (y * width + x) * 4;
+      const output = y * width + x;
+      if (channels === 1) {
+        result[output] = data[pixel + 3] > 0 ? 0 : 255;
+      } else {
+        result[output] = data[pixel];
+        result[width * height + output] = data[pixel + 1];
+        result[2 * width * height + output] = data[pixel + 2];
+      }
+    }
+  }
+  return result;
+}
+
+function chwToImageData(data, width, height) {
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  const size = width * height;
+  for (let index = 0; index < size; index += 1) {
+    rgba[index * 4] = data[index];
+    rgba[index * 4 + 1] = data[size + index];
+    rgba[index * 4 + 2] = data[size * 2 + index];
+    rgba[index * 4 + 3] = 255;
+  }
+  return new ImageData(rgba, width, height);
+}
+
+async function repairMarkedPixelsAi() {
+  if (!watermarkState.image || !markedPixelCount()) return;
+  const scale = getAiRepairScale();
+  const width = Math.max(8, Math.round(watermarkState.resultCanvas.width * scale / 8) * 8);
+  const height = Math.max(8, Math.round(watermarkState.resultCanvas.height * scale / 8) * 8);
+  const [imageData, maskData] = [
+    canvasImageData(watermarkState.resultCanvas, width, height),
+    canvasImageData(watermarkState.maskCanvas, width, height),
+  ];
+  const session = await loadInpaintSession();
+  const imageTensor = new window.ort.Tensor('uint8', rgbaToChw(imageData, 3), [1, 3, height, width]);
+  const maskTensor = new window.ort.Tensor('uint8', rgbaToChw(maskData, 1), [1, 1, height, width]);
+  const results = await session.run({ [session.inputNames[0]]: imageTensor, [session.inputNames[1]]: maskTensor });
+  const output = chwToImageData(results[session.outputNames[0]].data, width, height);
+  const repaired = document.createElement('canvas');
+  repaired.width = width;
+  repaired.height = height;
+  repaired.getContext('2d').putImageData(output, 0, 0);
+  saveResultHistory();
+  resultCtx.drawImage(repaired, 0, 0, watermarkState.resultCanvas.width, watermarkState.resultCanvas.height);
+  maskCtx.clearRect(0, 0, watermarkState.maskCanvas.width, watermarkState.maskCanvas.height);
+  watermarkState.maskHistory = [];
+  watermarkState.hasResult = true;
+  watermarkState.showOriginal = false;
+  showWatermarkToast(scale < 1 ? 'AI 修复完成，已按本地性能优化分辨率' : 'AI 修复完成，请检查边缘效果');
+}
+
+async function repairMarkedPixels() {
+  if (!watermarkState.image || !markedPixelCount() || watermarkState.processing) return;
+  watermarkState.processing = true;
+  updateWatermarkUi();
+  try {
+    if (watermarkState.engine === 'ai') await repairMarkedPixelsAi();
+    else repairMarkedPixelsQuick();
+  } catch (error) {
+    console.error('watermark_inpaint_failed', error);
+    showWatermarkToast('AI 修复未能启动，请改用快速修补或检查网络');
+  } finally {
+    watermarkState.processing = false;
+    updateWatermarkUi();
+    drawWatermarkCanvas();
+  }
 }
 
 function downloadWatermarkImage() {
@@ -463,6 +666,14 @@ function isWatermarkFileDrop(event) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
+function setWatermarkOriginalPreview(showOriginal) {
+  if (!watermarkState.image) return;
+  watermarkState.showOriginal = showOriginal;
+  watermarkControls.compare.setAttribute('aria-pressed', String(showOriginal));
+  updateWatermarkUi();
+  drawWatermarkCanvas();
+}
+
 watermarkControls.fileInput.addEventListener('change', (event) => setWatermarkFile(event.target.files?.[0]));
 watermarkControls.uploadDrop.addEventListener('dragover', (event) => { event.preventDefault(); watermarkControls.uploadDrop.classList.add('is-dragging'); });
 watermarkControls.uploadDrop.addEventListener('dragleave', () => watermarkControls.uploadDrop.classList.remove('is-dragging'));
@@ -473,6 +684,7 @@ watermarkControls.canvasWrap.addEventListener('dragleave', () => watermarkContro
 watermarkControls.canvasWrap.addEventListener('drop', (event) => { event.preventDefault(); watermarkControls.canvasDropHint.classList.remove('is-visible'); setWatermarkFile(event.dataTransfer.files?.[0]); });
 
 watermarkControls.canvas.addEventListener('pointerdown', (event) => {
+  if (watermarkState.showOriginal || watermarkState.processing) return;
   const point = getWatermarkImagePoint(event);
   if (!point) return;
   const candidate = candidateAt(point);
@@ -507,6 +719,7 @@ watermarkControls.canvas.addEventListener('pointerup', finishWatermarkDrawing);
 watermarkControls.canvas.addEventListener('pointercancel', finishWatermarkDrawing);
 
 document.querySelectorAll('[data-watermark-tool]').forEach((button) => button.addEventListener('click', () => chooseWatermarkTool(button.dataset.watermarkTool)));
+document.querySelectorAll('[data-watermark-engine]').forEach((button) => button.addEventListener('click', () => chooseWatermarkEngine(button.dataset.watermarkEngine)));
 document.querySelectorAll('[data-watermark-format]').forEach((button) => button.addEventListener('click', () => {
   watermarkState.format = button.dataset.watermarkFormat;
   document.querySelectorAll('[data-watermark-format]').forEach((option) => {
@@ -528,11 +741,21 @@ watermarkControls.undo.addEventListener('click', undoWatermarkMark);
 watermarkControls.clear.addEventListener('click', clearWatermarkMarks);
 watermarkControls.process.addEventListener('click', repairMarkedPixels);
 watermarkControls.reset.addEventListener('click', resetWatermarkImage);
+watermarkControls.repairUndo.addEventListener('click', undoWatermarkRepair);
 watermarkControls.smartScan.addEventListener('click', detectWatermarkCandidates);
 watermarkControls.smartApply.addEventListener('click', applyWatermarkCandidates);
 watermarkControls.smartClear.addEventListener('click', clearWatermarkCandidates);
 watermarkControls.export.addEventListener('click', downloadWatermarkImage);
 watermarkControls.wideExport.addEventListener('click', downloadWatermarkImage);
+watermarkControls.compare.addEventListener('pointerdown', () => setWatermarkOriginalPreview(true));
+watermarkControls.compare.addEventListener('pointerup', () => setWatermarkOriginalPreview(false));
+watermarkControls.compare.addEventListener('pointerleave', () => setWatermarkOriginalPreview(false));
+watermarkControls.compare.addEventListener('keydown', (event) => { if (event.key === ' ' || event.key === 'Enter') setWatermarkOriginalPreview(true); });
+watermarkControls.compare.addEventListener('keyup', () => setWatermarkOriginalPreview(false));
+watermarkControls.fit.addEventListener('click', () => {
+  drawWatermarkCanvas();
+  showWatermarkToast('画布已适应当前窗口');
+});
 watermarkControls.themeToggle.addEventListener('click', () => setWatermarkTheme(currentWatermarkTheme() === 'dark' ? 'light' : 'dark'));
 window.addEventListener('resize', resizeWatermarkCanvas);
 

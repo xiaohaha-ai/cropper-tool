@@ -16,7 +16,9 @@
       document.documentElement.dataset.theme = 'dark';
     }
   </script>
+  <meta name="description" content="浏览器本地运行的图片局部修复与去水印工具。" />
   <title>去水印 - 裁切台</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 
@@ -51,7 +53,7 @@
           <label class="upload-drop" id="watermarkUploadDrop" for="watermarkFileInput">
             <i data-lucide="image-up" aria-hidden="true"></i>
             <span class="upload-title">选择图片</span>
-            <span class="upload-hint">JPG, PNG, WEBP</span>
+            <span class="upload-hint">JPG, PNG, WEBP · 本地处理</span>
           </label>
           <input id="watermarkFileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
           <div class="file-row is-empty" id="watermarkFileRow">
@@ -79,7 +81,14 @@
       </aside>
 
       <section class="watermark-editor" aria-label="去水印画布">
-        <div class="editor-meta"><span id="watermarkCanvasTitle">去水印</span><span id="watermarkZoomReadout">100%</span></div>
+        <div class="editor-meta">
+          <span id="watermarkCanvasTitle">去水印</span>
+          <div class="watermark-view-actions">
+            <button class="watermark-view-action" id="watermarkCompare" type="button" disabled aria-pressed="false" title="按住查看原图"><i data-lucide="eye" aria-hidden="true"></i><span>原图</span></button>
+            <button class="watermark-view-action" id="watermarkFit" type="button" disabled title="适应画布"><i data-lucide="scan" aria-hidden="true"></i></button>
+            <span id="watermarkZoomReadout">适应画布</span>
+          </div>
+        </div>
         <div class="watermark-canvas-wrap" id="watermarkCanvasWrap">
           <canvas id="watermarkCanvas" aria-label="去水印编辑画布"></canvas>
           <div class="canvas-empty" id="watermarkCanvasEmpty">
@@ -91,13 +100,13 @@
             <span>松开以添加图片</span>
           </div>
         </div>
-        <div class="editor-foot"><span>在水印上涂抹或框选</span><span>标记只影响局部修复区域</span></div>
+        <div class="editor-foot"><span>在水印上涂抹或框选</span><span id="watermarkCanvasStatus">标记只影响局部修复区域</span></div>
       </section>
 
       <aside class="right-rail watermark-right" aria-label="去水印设置">
         <section class="rail-section watermark-smart-section">
           <div class="section-heading"><span>智能识别</span><span class="mono-label" id="watermarkCandidateCount">未分析</span></div>
-          <button class="watermark-smart-scan" id="watermarkSmartScan" type="button" disabled><i data-lucide="scan-search" aria-hidden="true"></i><span>识别 AI 字样</span></button>
+          <button class="watermark-smart-scan" id="watermarkSmartScan" type="button" disabled><i data-lucide="scan-search" aria-hidden="true"></i><span>扫描英文文字</span></button>
           <div class="watermark-smart-actions is-hidden" id="watermarkSmartActions">
             <button class="watermark-smart-apply" id="watermarkSmartApply" type="button">应用候选标记</button>
             <button class="watermark-smart-clear" id="watermarkSmartClear" type="button" title="清除识别候选" aria-label="清除识别候选"><i data-lucide="x" aria-hidden="true"></i></button>
@@ -124,11 +133,21 @@
           </div>
         </section>
 
-        <section class="rail-section">
-          <div class="section-heading"><span>局部修复</span><span class="mono-label">本地处理</span></div>
-          <p class="watermark-description">适合背景较均匀、面积较小的文字或角标水印。请只覆盖水印本身。</p>
-          <button class="watermark-process" id="watermarkProcess" type="button" disabled><i data-lucide="sparkles" aria-hidden="true"></i><span>去除标记内容</span></button>
-          <button class="watermark-reset" id="watermarkReset" type="button" disabled>恢复原图</button>
+        <section class="rail-section watermark-repair-section">
+          <div class="section-heading"><span>局部修复</span><span class="mono-label" id="watermarkEngineStatus">快速</span></div>
+          <div class="watermark-engine-toggle" role="radiogroup" aria-label="修复引擎">
+            <button class="watermark-engine is-selected" type="button" data-watermark-engine="quick" role="radio" aria-checked="true">快速修补</button>
+            <button class="watermark-engine" type="button" data-watermark-engine="ai" role="radio" aria-checked="false">AI 修复</button>
+          </div>
+          <p class="watermark-description" id="watermarkEngineDescription">快速修补适合纯色、渐变或简单纹理背景的小面积文字与角标。</p>
+          <div class="watermark-model-status is-hidden" id="watermarkModelStatus" role="status" aria-live="polite">
+            <i data-lucide="cpu" aria-hidden="true"></i><span>首次使用将下载并缓存本地模型</span>
+          </div>
+          <button class="watermark-process" id="watermarkProcess" type="button" disabled><i data-lucide="sparkles" aria-hidden="true"></i><span id="watermarkProcessLabel">去除标记内容</span></button>
+          <div class="watermark-repair-actions">
+            <button class="watermark-reset" id="watermarkRepairUndo" type="button" disabled>撤销修复</button>
+            <button class="watermark-reset" id="watermarkReset" type="button" disabled>恢复原图</button>
+          </div>
         </section>
 
         <section class="rail-section">
