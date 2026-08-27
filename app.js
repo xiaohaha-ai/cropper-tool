@@ -1070,12 +1070,13 @@ function updateExportSummary() {
   const width = Math.max(1, Number(controls.outputWidth.value) || 1);
   const height = Math.max(1, Number(controls.outputHeight.value) || 1);
   const type = state.format === 'image/png' ? 'PNG' : 'JPG';
+  const nativeShare = mobileImageShareAvailable();
   if (state.mode === 'nine') {
     controls.exportSpec.textContent = `${width} x ${height} px · ${selectedGridCellCount()} 张`;
-    controls.exportFormat.textContent = `${type} · ZIP`;
+    controls.exportFormat.textContent = nativeShare ? `${type} · 系统分享` : `${type} · ZIP`;
   } else if (state.mode === 'smart') {
     controls.exportSpec.textContent = `${width} x ${height} px · ${selectedSmartCandidateCount()} 张`;
-    controls.exportFormat.textContent = `${type} · ZIP`;
+    controls.exportFormat.textContent = nativeShare ? `${type} · 系统分享` : `${type} · ZIP`;
   } else {
     controls.exportSpec.textContent = `${width} x ${height} px`;
     controls.exportFormat.textContent = type;
@@ -1094,11 +1095,15 @@ function updateUi() {
   const tileCount = gridTileCount();
   const selectedGridCount = selectedGridCellCount();
   const smartCount = selectedSmartCandidateCount();
-  controls.headerExportLabel.textContent = isNineGrid || isSmartMode ? '导出 ZIP' : '导出';
+  const nativeShare = mobileImageShareAvailable();
+  const mobileJpeg = isMobileDevice();
+  controls.headerExportLabel.textContent = nativeShare ? '保存/分享' : (isNineGrid || isSmartMode ? '导出 ZIP' : '导出');
   controls.wideExportLabel.textContent = isNineGrid
-    ? (selectedGridCount ? `导出压缩包 ${selectedGridCount} 张` : '选择裁切内容')
-    : (isSmartMode ? `导出压缩包 ${smartCount} 张` : '导出图片');
-  controls.export.setAttribute('aria-label', isNineGrid || isSmartMode ? '导出压缩包' : '导出图片');
+    ? (selectedGridCount ? (nativeShare ? `保存/分享 ${selectedGridCount} 张` : `导出压缩包 ${selectedGridCount} 张`) : '选择裁切内容')
+    : (isSmartMode
+      ? (nativeShare ? `保存/分享 ${smartCount} 张` : `导出压缩包 ${smartCount} 张`)
+      : (nativeShare ? '保存/分享图片' : '导出图片'));
+  controls.export.setAttribute('aria-label', nativeShare ? '保存或分享图片' : (isNineGrid || isSmartMode ? '导出压缩包' : '导出图片'));
   controls.modeNote.textContent = isNineGrid ? `${selectedGridCount} / ${tileCount} 个已选` : (isSmartMode ? '本地识别完整画面' : '导出当前裁切范围');
   controls.gridControls.classList.toggle('is-hidden', !isNineGrid);
   controls.smartExportMode.classList.toggle('is-hidden', !isSmartMode);
@@ -1109,13 +1114,19 @@ function updateUi() {
   });
   document.querySelectorAll('.smart-export-option').forEach((button) => {
     const selected = button.dataset.smartExport === state.smart.exportMode;
+    const cannotUseShape = mobileJpeg && button.dataset.smartExport === 'shape';
     button.classList.toggle('is-selected', selected);
     button.setAttribute('aria-checked', String(selected));
+    button.disabled = cannotUseShape;
+    button.title = cannotUseShape ? '手机端自动导出 JPG，不支持透明图框' : '';
   });
   document.querySelectorAll('.format-option').forEach((button) => {
-    const cannotUseJpg = isSmartMode && state.smart.exportMode === 'shape' && button.dataset.format === 'image/jpeg';
-    button.disabled = cannotUseJpg;
-    button.title = cannotUseJpg ? '保留图框时需要 PNG 透明背景' : '';
+    const cannotUseJpg = !mobileJpeg && isSmartMode && state.smart.exportMode === 'shape' && button.dataset.format === 'image/jpeg';
+    const cannotUsePng = mobileJpeg && button.dataset.format === 'image/png';
+    button.disabled = cannotUseJpg || cannotUsePng;
+    button.title = cannotUsePng
+      ? '手机端自动导出 JPG 图片'
+      : (cannotUseJpg ? '保留图框时需要 PNG 透明背景' : '');
   });
   const canExport = Boolean(state.image)
     && (!isNineGrid || selectedGridCount > 0)
@@ -1140,7 +1151,7 @@ function chooseRatio(button) {
 
 function chooseFormat(button) {
   if (button.disabled) {
-    showToast('保留图框时需要使用 PNG 格式');
+    showToast(isMobileDevice() ? '手机端会自动导出 JPG 图片' : '保留图框时需要使用 PNG 格式');
     return;
   }
   setFormat(button.dataset.format);
@@ -1157,6 +1168,7 @@ function setFormat(format) {
 }
 
 function chooseSmartExportMode(button) {
+  if (button.disabled) return;
   state.smart.exportMode = button.dataset.smartExport;
   if (state.smart.exportMode === 'shape') setFormat('image/png');
   updateUi();
@@ -1955,6 +1967,51 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function isMobileDevice() {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+    return navigator.userAgentData.mobile;
+  }
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches);
+}
+
+function canShareImageFiles(files) {
+  if (!isMobileDevice() || !navigator.share || !navigator.canShare || !files.length) return false;
+  try {
+    return navigator.canShare({ files });
+  } catch {
+    return false;
+  }
+}
+
+function mobileImageShareAvailable() {
+  try {
+    const probe = new File([new Blob()], 'image.png', { type: 'image/png' });
+    return canShareImageFiles([probe]);
+  } catch {
+    return false;
+  }
+}
+
+async function shareImageFiles(files, title) {
+  if (!canShareImageFiles(files)) return false;
+  try {
+    showToast(files.length > 1
+      ? `请在系统面板选择“存储 ${files.length} 张图片”`
+      : '请在系统面板选择“存储到照片”');
+    await navigator.share({ files, title });
+    showToast('图片已交给系统处理');
+    return true;
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      showToast('已取消保存');
+      return true;
+    }
+    console.warn('image_share_failed', error);
+    return false;
+  }
+}
+
 function canvasToBlob(source) {
   return new Promise((resolve) => source.toBlob(resolve, state.format, state.quality));
 }
@@ -2012,22 +2069,28 @@ function createSmartExportTile(source, candidate, outputWidth, outputHeight) {
 }
 
 async function exportTilesAsZip(tiles, extension, archiveName) {
+  const blobs = await Promise.all(tiles.map(({ tile }) => canvasToBlob(tile)));
+  const files = blobs.flatMap((blob, index) => blob
+    ? [new File([blob], tiles[index].filename, { type: blob.type || state.format })]
+    : []);
+  if (!files.length) {
+    showToast('没有可导出的图片');
+    return;
+  }
+
+  if (await shareImageFiles(files, `${state.imageName} 导出图片`)) return;
+
   if (!window.JSZip) {
     showToast('压缩组件未加载，请检查网络后重试');
     return;
   }
   const zip = new window.JSZip();
-  const blobs = await Promise.all(tiles.map(({ tile }) => canvasToBlob(tile)));
-  blobs.forEach((blob, index) => {
-    if (blob) zip.file(tiles[index].filename, blob);
-  });
-  if (!Object.keys(zip.files).length) {
-    showToast('没有可打包的图片');
-    return;
-  }
+  files.forEach((file) => zip.file(file.name, file));
   const archive = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
   downloadBlob(archive, `${state.imageName}-${archiveName}.zip`);
-  showToast(`已导出压缩包，含 ${tiles.length} 张图片`);
+  showToast(isMobileDevice()
+    ? '设备不支持直接存相册，ZIP 已保存到“文件/下载”'
+    : `已导出压缩包，含 ${files.length} 张图片`);
 }
 
 async function exportGrid(fullCanvas, outputWidth, outputHeight, extension) {
@@ -2068,6 +2131,11 @@ async function exportSmartCrops(fullCanvas, outputWidth, outputHeight, extension
 
 async function exportImage() {
   if (!state.image) return;
+  if (isMobileDevice()) {
+    state.smart.exportMode = 'bounds';
+    setFormat('image/jpeg');
+    updateUi();
+  }
   const outputWidth = clamp(round(Number(controls.outputWidth.value) || 1600), 1, 10000);
   const outputHeight = clamp(round(Number(controls.outputHeight.value) || 1600), 1, 10000);
   controls.outputWidth.value = outputWidth;
@@ -2082,11 +2150,15 @@ async function exportImage() {
     await exportSmartCrops(result, outputWidth, outputHeight, extension);
     return;
   }
-  result.toBlob((blob) => {
-    if (!blob) return;
-    downloadBlob(blob, `${state.imageName}-cropped.${extension}`);
-    showToast(`已导出 ${outputWidth} x ${outputHeight} ${extension.toUpperCase()}`);
-  }, state.format, state.quality);
+  const blob = await canvasToBlob(result);
+  if (!blob) return;
+  const filename = `${state.imageName}-cropped.${extension}`;
+  const file = new File([blob], filename, { type: blob.type || state.format });
+  if (await shareImageFiles([file], `${state.imageName} 裁切图片`)) return;
+  downloadBlob(blob, filename);
+  showToast(isMobileDevice()
+    ? '图片已下载，请在“文件/下载”中查看'
+    : `已导出 ${outputWidth} x ${outputHeight} ${extension.toUpperCase()}`);
 }
 
 function hasFiles(event) {
@@ -2198,8 +2270,10 @@ canvas.addEventListener('pointerleave', () => {
 window.addEventListener('resize', resizeCanvas);
 
 if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.7 } });
+if (isMobileDevice()) setFormat('image/jpeg');
 updateThemeToggle();
 updateOutputSizeLink();
+updateUi();
 resizeCanvas();
 
 if ('serviceWorker' in navigator && window.isSecureContext) {

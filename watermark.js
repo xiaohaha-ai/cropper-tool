@@ -37,6 +37,8 @@ const watermarkControls = {
   qualityControl: document.querySelector('#watermarkQualityControl'),
   export: document.querySelector('#watermarkExport'),
   wideExport: document.querySelector('#watermarkWideExport'),
+  headerExportLabel: document.querySelector('#watermarkHeaderExportLabel'),
+  wideExportLabel: document.querySelector('#watermarkWideExportLabel'),
   exportSpec: document.querySelector('#watermarkExportSpec'),
   exportFormat: document.querySelector('#watermarkExportFormat'),
   themeToggle: document.querySelector('#watermarkThemeToggle'),
@@ -299,6 +301,15 @@ function updateWatermarkUi() {
   watermarkControls.wideExport.disabled = !hasImage;
   watermarkControls.exportSpec.textContent = hasImage ? `${watermarkState.image.naturalWidth} x ${watermarkState.image.naturalHeight} px` : '等待图片';
   watermarkControls.exportFormat.textContent = watermarkState.format === 'image/png' ? 'PNG' : 'JPG';
+  const nativeShare = watermarkMobileImageShareAvailable();
+  watermarkControls.headerExportLabel.textContent = nativeShare ? '保存/分享' : '导出';
+  watermarkControls.wideExportLabel.textContent = nativeShare ? '保存/分享图片' : '导出图片';
+  watermarkControls.export.setAttribute('aria-label', nativeShare ? '保存或分享图片' : '导出图片');
+  document.querySelectorAll('[data-watermark-format]').forEach((button) => {
+    const cannotUsePng = watermarkIsMobileDevice() && button.dataset.watermarkFormat === 'image/png';
+    button.disabled = cannotUsePng;
+    button.title = cannotUsePng ? '手机端自动导出 JPG 图片' : '';
+  });
   watermarkControls.qualityControl.classList.toggle('is-hidden', watermarkState.format === 'image/png');
   updateWatermarkEngineUi();
 }
@@ -634,18 +645,64 @@ async function repairMarkedPixels() {
   }
 }
 
-function downloadWatermarkImage() {
+function watermarkIsMobileDevice() {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+    return navigator.userAgentData.mobile;
+  }
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches);
+}
+
+function watermarkCanShareFiles(files) {
+  if (!watermarkIsMobileDevice() || !navigator.share || !navigator.canShare || !files.length) return false;
+  try {
+    return navigator.canShare({ files });
+  } catch {
+    return false;
+  }
+}
+
+function watermarkMobileImageShareAvailable() {
+  try {
+    const probe = new File([new Blob()], 'image.png', { type: 'image/png' });
+    return watermarkCanShareFiles([probe]);
+  } catch {
+    return false;
+  }
+}
+
+async function downloadWatermarkImage() {
   if (!watermarkState.image) return;
+  if (watermarkIsMobileDevice()) setWatermarkFormat('image/jpeg');
   const extension = watermarkState.format === 'image/png' ? 'png' : 'jpg';
-  watermarkState.resultCanvas.toBlob((blob) => {
-    if (!blob) return;
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${watermarkState.name}-watermark-free.${extension}`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    showWatermarkToast('已开始导出图片');
-  }, watermarkState.format, watermarkState.quality);
+  const blob = await new Promise((resolve) => {
+    watermarkState.resultCanvas.toBlob(resolve, watermarkState.format, watermarkState.quality);
+  });
+  if (!blob) return;
+  const filename = `${watermarkState.name}-watermark-free.${extension}`;
+  const file = new File([blob], filename, { type: blob.type || watermarkState.format });
+  if (watermarkCanShareFiles([file])) {
+    try {
+      showWatermarkToast('请在系统面板选择“存储到照片”');
+      await navigator.share({ files: [file], title: `${watermarkState.name} 去水印图片` });
+      showWatermarkToast('图片已交给系统处理');
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        showWatermarkToast('已取消保存');
+        return;
+      }
+      console.warn('watermark_image_share_failed', error);
+    }
+  }
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
+  showWatermarkToast(watermarkIsMobileDevice()
+    ? '图片已下载，请在“文件/下载”中查看'
+    : '已开始导出图片');
 }
 
 function showWatermarkToast(message) {
@@ -713,13 +770,18 @@ watermarkControls.canvas.addEventListener('pointercancel', finishWatermarkDrawin
 
 document.querySelectorAll('[data-watermark-tool]').forEach((button) => button.addEventListener('click', () => chooseWatermarkTool(button.dataset.watermarkTool)));
 document.querySelectorAll('[data-watermark-engine]').forEach((button) => button.addEventListener('click', () => chooseWatermarkEngine(button.dataset.watermarkEngine)));
-document.querySelectorAll('[data-watermark-format]').forEach((button) => button.addEventListener('click', () => {
-  watermarkState.format = button.dataset.watermarkFormat;
+function setWatermarkFormat(format) {
+  watermarkState.format = format;
   document.querySelectorAll('[data-watermark-format]').forEach((option) => {
-    const selected = option === button;
+    const selected = option.dataset.watermarkFormat === format;
     option.classList.toggle('is-selected', selected);
     option.setAttribute('aria-checked', String(selected));
   });
+}
+
+document.querySelectorAll('[data-watermark-format]').forEach((button) => button.addEventListener('click', () => {
+  if (button.disabled) return;
+  setWatermarkFormat(button.dataset.watermarkFormat);
   updateWatermarkUi();
 }));
 watermarkControls.brushSize.addEventListener('input', () => {
@@ -753,6 +815,7 @@ watermarkControls.themeToggle.addEventListener('click', () => setWatermarkTheme(
 window.addEventListener('resize', resizeWatermarkCanvas);
 
 if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.7 } });
+if (watermarkIsMobileDevice()) setWatermarkFormat('image/jpeg');
 updateWatermarkTheme();
 chooseWatermarkTool('brush');
 updateWatermarkUi();
