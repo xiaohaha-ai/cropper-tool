@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>免费字体库 - 裁切台</title>
+  <meta name="description" content="51 款免费字体在线预览，中英文试字、字重切换与带格式文字复制。">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="font-library/styles.css">
+  <script src="font-library/catalog.js" defer></script>
+  <script src="font-library/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-branding">
+      <a class="site-brand" href="./" aria-label="裁切台主页"><span class="site-mark" aria-hidden="true"><i></i><i></i></span>裁切台</a>
+      <nav class="site-nav" aria-label="工具导航"><a href="./">裁切</a><a href="watermark.html">去水印</a><a href="fonts.html" aria-current="page">免费字体库</a></nav>
+    </div>
+    <button id="helpButton" class="text-button">使用说明</button>
+  </header>
+  <div class="app-layout">
+    <aside class="sidebar" aria-label="字体库">
+      <div class="library-heading"><h1>我的字体库</h1><span id="familyCount" class="count"></span></div>
+      <div class="search-wrap"><label class="sr-only" for="fontSearch">搜索字体</label><input id="fontSearch" type="search" placeholder="搜索字体名称、品牌…" autocomplete="off"><span class="search-hint" aria-hidden="true">⌘ K</span></div>
+      <div class="library-tabs" aria-label="字体范围"><button id="allTab" class="active" aria-pressed="true">全部字体</button><button id="favoritesTab" aria-pressed="false">已收藏 <span id="favoriteCount">0</span></button></div>
+      <div id="categories" class="categories" aria-label="字体风格筛选"></div>
+      <div class="list-heading"><span id="resultCount"></span><span>点击即可试字</span></div>
+      <nav id="fontList" class="font-list" aria-label="选择字体"></nav>
+      <p id="emptyState" class="empty-state" hidden>没有找到字体<br><span>试试其他名字或分类。</span><button id="clearFilters" class="text-button">清除筛选</button></p>
+      <div class="library-footer"><span id="styleCount"></span><span>保留原始字形</span></div>
+    </aside>
+    <main>
+      <section class="workspace-header" aria-label="当前字体">
+        <div><div class="eyebrow" id="fontCategory">文字，也有自己的性格。</div><h2 id="fontName">正在准备字体…</h2><p id="fontDescription" class="font-description"></p></div>
+        <button id="favoriteButton" class="favorite-button" aria-pressed="false">收藏字体</button>
+      </section>
+      <section class="toolbar" aria-label="排版设置">
+        <label class="weight-control">字重<select id="variantSelect" aria-label="选择字体字重"></select></label>
+        <label class="range-control">字号 <div><input id="fontSize" type="range" min="16" max="160" step="1" value="64" aria-label="字号"><output id="fontSizeValue" for="fontSize">64</output><span class="unit">px</span></div></label>
+        <label class="range-control compact">字距 <div><input id="letterSpacing" type="range" min="-2" max="20" step="0.5" value="0" aria-label="字距"><output id="letterSpacingValue" for="letterSpacing">0</output></div></label>
+        <label class="range-control compact">行距 <div><input id="lineHeight" type="range" min="1" max="2.5" step="0.05" value="1.5" aria-label="行距"><output id="lineHeightValue" for="lineHeight">1.5</output></div></label>
+      </section>
+      <div id="variableControls" class="variable-controls" hidden></div>
+      <section class="preview-shell" aria-label="字体效果预览">
+        <div class="canvas-toolbar">
+          <div class="alignment" aria-label="文字对齐"><button data-align="left" aria-label="左对齐" class="active" aria-pressed="true">左对齐</button><button data-align="center" aria-label="居中对齐" aria-pressed="false">居中</button><button data-align="right" aria-label="右对齐" aria-pressed="false">右对齐</button></div>
+          <div class="color-controls"><label>文字<input type="color" id="textColor" value="#253b32" aria-label="文字颜色"></label><label>背景<input type="color" id="backgroundColor" value="#ffffff" aria-label="背景颜色"></label><button id="resetStyle" class="text-button">重置样式</button></div>
+        </div>
+        <div class="paper" id="paper">
+          <div class="paper-caption"><span>中英文一起输入，切换字体对比。</span><span id="loadStatus" role="status" aria-live="polite">准备中</span></div>
+          <label class="sr-only" for="previewText">输入预览文字</label>
+          <textarea id="previewText" spellcheck="false" placeholder="写下你想预览的文字…" aria-describedby="glyphNotice" maxlength="20000">从展馆，走向城市。
+让生活，有一点艺术。
+Make room for good things.</textarea>
+          <div class="paper-bottom"><span id="characterCount"></span><span id="paperFontName"></span></div>
+        </div>
+        <div id="glyphNotice" class="glyph-notice" role="status" hidden></div>
+        <div id="loadError" class="error-notice" role="alert" hidden><span></span><button id="retryFont">重新加载</button></div>
+      </section>
+      <section class="sample-bar" aria-label="替换示例文字"><span>试一段</span><button data-sample="art">艺术与生活</button><button data-sample="poem">山水诗句</button><button data-sample="brand">品牌标题</button><button data-sample="english">字母与数字</button><button id="clearText" class="clear-text">清空文字</button></section>
+      <footer class="workspace-footer"><span id="copyHint">粘贴时保留源格式；目标软件需安装对应字体。</span><button id="copyButton" class="text-button" aria-describedby="copyHint">复制带格式文字</button></footer>
+    </main>
+  </div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="helpDialog"><div class="dialog-header"><h2>把文字，换个样子。</h2><button id="closeHelp" class="text-button">关闭</button></div><p>在预览区输入或粘贴内容，点击左边的字体名称，就能看到同一句话的不同字形。手机上先选字体，再向下看预览区。</p><ol><li>使用“字重”切换粗细；部分可变字体还可以调节字宽、倾斜或圆角。</li><li>收藏喜欢的字体，或用搜索和风格分类快速查找。</li><li>所有字体共用同一段中英文内容，切换字体时文字保持不变。英文专用字体的中文由系统字体补齐；其他缺失字符也会明确提示。</li><li>“复制带格式文字”会复制字体名称、字重、字号、颜色、背景、间距、对齐和换行，同时附带纯文字。粘贴时选择“保留源格式”；目标软件需要安装对应字体，部分软件不支持全部格式或可变字体轴。字体文件本身不会随文字复制。</li><li>输入的内容仅保存在这台设备上。</li><li>字体按需加载，选择后即可预览，无需安装字体。首次加载较大的字库时，请稍等片刻。</li></ol><p class="help-note">收录思源、Noto、阿里巴巴、仓耳、站酷等字体。<a href="font-library/licenses/index.html" target="_blank" rel="noopener">查看字体原始授权与说明</a>。</p><p class="help-note">阿里妈妈方圆体、刀隶体、灵动体：版权所有人阿里妈妈。</p></dialog>
+  <noscript>请启用 JavaScript 后使用字体预览。</noscript>
+</body>
+</html>
