@@ -40,6 +40,42 @@
   let category = '全部', favoritesOnly = false, search = '', activeVariant = null, activeCoverage = null;
   let generation = 0, saveTimer, loadTimer, noticeTimer, toastTimer;
   const cache = new Map(), pending = new Map();
+  const previewCoverage = unpackCoverage(catalog.previewCoveragePacked);
+  const diskCache = window.caches ? caches.open('cropper-font-previews-v1').catch(() => null) : Promise.resolve(null);
+
+  function unpackCoverage(packed) {
+    const bytes = atob(packed), ranges = [];
+    let previous = 0, value = 0, shift = 0, start = null;
+    for (let i = 0; i < bytes.length; i++) {
+      const byte = bytes.charCodeAt(i); value += (byte & 127) * 2 ** shift;
+      if (byte & 128) { shift += 7; continue; }
+      if (start === null) start = previous + value;
+      else { ranges.push([start, start + value]); previous = start + value + 1; start = null; }
+      value = 0; shift = 0;
+    }
+    return ranges;
+  }
+  function coverage(v) { return v.coverage ||= unpackCoverage(catalog.coverages[v.coverageIndex]); }
+  function includesCode(ranges, code) {
+    let lo = 0, hi = ranges.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1, range = ranges[mid];
+      if (code < range[0]) hi = mid - 1;
+      else if (code > range[1]) lo = mid + 1;
+      else return true;
+    }
+    return false;
+  }
+  function needsFullFont(v) {
+    return v.preview && [...state.text].some(c => includesCode(coverage(v), c.codePointAt(0)) && !includesCode(previewCoverage, c.codePointAt(0)));
+  }
+  function cancelUnused(v) {
+    const full = needsFullFont(v);
+    for (const [key, request] of pending) {
+      if (key === v.id + ':preview' || (full || !v.preview) && key === v.id + ':full') continue;
+      request.controller.abort(); pending.delete(key);
+    }
+  }
   const preview = $('previewText');
   preview.value = state.text;
 
@@ -93,10 +129,11 @@
     $('variantSelect').disabled = f.variants.length === 1;
     updateFavorite(); renderAxes(v);
     const token = ++generation;
+    cancelUnused(v);
     $('loadError').hidden = true; $('glyphNotice').hidden = true;
     $('loadStatus').textContent = '正在加载字形…'; $('paperFontName').textContent = '字形加载中';
     preview.setAttribute('aria-busy','true');
-    clearTimeout(loadTimer);
+    clearTimeout(loadTimer); clearTimeout(noticeTimer);
     loadTimer = setTimeout(() => activate(v, token), 60);
     persist();
   }
@@ -123,54 +160,82 @@
     const v = activeVariant;
     preview.style.fontVariationSettings = v?.axes.length ? v.axes.map(a => `"${a.tag}" ${state.axes[`${v.id}:${a.tag}`] ?? a.default}`).join(', ') : 'normal';
   }
-  function loadFont(v) {
-    if (cache.has(v.id)) return Promise.resolve(cache.get(v.id));
-    if (pending.has(v.id)) return pending.get(v.id);
-    const promise = (async () => {
-      const controller = new AbortController();
+  function loadFont(v, full = false) {
+    const asset = !full && v.preview ? v.preview : v;
+    const key = v.id + (asset === v ? ':full' : ':preview');
+    if (cache.has(key)) {
+      const entry = cache.get(key); cache.delete(key); cache.set(key, entry);
+      return Promise.resolve(entry);
+    }
+    if (pending.has(key)) return pending.get(key).promise;
+    const controller = new AbortController();
+    const request = {controller};
+    request.promise = (async () => {
       const timeout = setTimeout(() => controller.abort(), 60000);
       try {
-        const response = await fetch(v.url, {signal:controller.signal});
-        if (!response.ok) throw new Error('字体下载失败');
+        const disk = asset === v.preview ? await diskCache : null;
+        let response = await disk?.match(asset.url).catch(() => null);
+        if (!response) {
+          response = await fetch(asset.url, {signal:controller.signal});
+          if (!response.ok) throw new Error('字体下载失败');
+          if (disk) {
+            // Font filenames are immutable; a denied/full browser cache is non-fatal.
+            disk.put(asset.url, response.clone()).catch(() => {});
+          }
+        }
         const bytes = await response.arrayBuffer();
-        const face = new FontFace(`preview-${v.id}`, bytes, {style:'normal',weight:'400'});
-        await face.load(); document.fonts.add(face);
-        const entry = {face,coverage:v.coverage}; cache.set(v.id,entry);
+        controller.signal.throwIfAborted();
+        const face = new FontFace(`preview-${v.id}-${asset === v ? 'full' : 'common'}`, bytes, {style:'normal',weight:'400'});
+        await face.load(); controller.signal.throwIfAborted(); document.fonts.add(face);
+        const entry = {face, bytes:bytes.byteLength, variantId:v.id}; cache.set(key,entry);
         return entry;
-      } finally { clearTimeout(timeout); pending.delete(v.id); }
+      } finally {
+        clearTimeout(timeout);
+        if (pending.get(key) === request) pending.delete(key);
+      }
     })();
-    pending.set(v.id,promise);
-    return promise;
+    pending.set(key,request);
+    return request.promise;
+  }
+  function showFace(v, entry) {
+    activeVariant = v; activeCoverage = coverage(v);
+    preview.style.fontFamily = `"${entry.face.family}", "PingFang SC", "Microsoft YaHei", sans-serif`;
+    preview.dataset.fontId = v.id; applyAxes();
+    $('paperFontName').textContent = `${family().name} / ${v.label}`;
+    updateMissingGlyphs();
   }
   async function activate(v, token) {
+    if (token !== generation) return;
     try {
-      const entry = await loadFont(v);
+      // Reuse a full face if already loaded, otherwise show common glyphs first.
+      const cachedFull = cache.get(v.id + ':full');
+      let entry = cachedFull || await loadFont(v);
       if (token !== generation) { pruneCache(); return; }
-      activeVariant = v; activeCoverage = entry.coverage;
-      preview.style.fontFamily = `"preview-${v.id}", "PingFang SC", "Microsoft YaHei", sans-serif`;
-      preview.dataset.fontId = v.id; applyAxes();
-      $('paperFontName').textContent = `${family().name} / ${v.label}`;
+      showFace(v, entry);
+      if (!cachedFull && needsFullFont(v)) {
+        $('loadStatus').textContent = '常用字已显示，正在补全字形…';
+        entry = await loadFont(v, true);
+        if (token !== generation) { pruneCache(); return; }
+        showFace(v, entry);
+      }
       $('loadStatus').textContent = '字形已就绪'; preview.setAttribute('aria-busy','false');
-      updateMissingGlyphs(); pruneCache();
+      pruneCache();
     } catch {
       if (token !== generation) return;
       preview.setAttribute('aria-busy','false'); $('loadStatus').textContent = '加载失败';
-      $('paperFontName').textContent = activeVariant ? '暂时保留上一个字体' : '暂时显示系统字体';
-      $('loadError').querySelector('span').textContent = '这款字体暂时无法加载，请检查网络后重试，或尝试其他字重。'; $('loadError').hidden = false;
+      $('paperFontName').textContent = activeVariant?.id === v.id ? '部分字形暂未加载' : activeVariant ? '暂时保留上一个字体' : '暂时显示系统字体';
+      $('loadError').querySelector('span').textContent = '这款字体暂时无法完整加载，请检查网络后重试，或尝试其他字重。'; $('loadError').hidden = false;
     }
   }
   function pruneCache() {
-    for (const [id,entry] of cache) {
-      if (cache.size <= 6) break;
-      if (id === activeVariant?.id || id === state.variant) continue;
-      document.fonts.delete(entry.face); cache.delete(id);
+    let bytes = [...cache.values()].reduce((sum, entry) => sum + entry.bytes, 0);
+    for (const [key,entry] of cache) {
+      if (bytes <= 64 * 1024 * 1024) break;
+      if (entry.variantId === activeVariant?.id || entry.variantId === state.variant) continue;
+      document.fonts.delete(entry.face); cache.delete(key); bytes -= entry.bytes;
     }
   }
-  function supported(code) {
-    let lo=0, hi=activeCoverage.length-1;
-    while (lo<=hi) { const mid=(lo+hi)>>1, range=activeCoverage[mid]; if (code<range[0]) hi=mid-1; else if(code>range[1]) lo=mid+1; else return true; }
-    return false;
-  }
+  function supported(code) { return includesCode(activeCoverage, code); }
   function updateMissingGlyphs() {
     if (!activeCoverage || activeVariant?.id !== state.variant) return;
     const missing = [...new Set([...state.text].filter(c => !/\s/u.test(c) && !/[\u200c\u200d\ufe0e\ufe0f]/u.test(c) && !supported(c.codePointAt(0))))];
@@ -191,7 +256,13 @@
   function textChanged() {
     state.text=preview.value;
     $('characterCount').textContent = `${[...state.text].filter(c=>c!=='\n').length} 个字符`;
-    clearTimeout(noticeTimer); noticeTimer=setTimeout(updateMissingGlyphs,180); persist();
+    clearTimeout(noticeTimer);
+    const v = chosenVariant(), token = ++generation;
+    cancelUnused(v); clearTimeout(loadTimer);
+    preview.setAttribute('aria-busy','true'); $('loadError').hidden = true;
+    $('loadStatus').textContent = '正在加载字形…';
+    noticeTimer = setTimeout(() => activate(v, token), 120);
+    persist();
   }
   $('fontSearch').oninput = e => { search=e.target.value.trim().toLowerCase(); renderList(); };
   function setScope(onlyFavorites) { favoritesOnly=onlyFavorites; for(const [id,on] of [['allTab',!onlyFavorites],['favoritesTab',onlyFavorites]]) { $(id).classList.toggle('active',on); $(id).setAttribute('aria-pressed',String(on)); } renderList(); }

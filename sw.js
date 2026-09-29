@@ -1,12 +1,12 @@
-const CACHE_NAME = 'cropper-static-v12-fonts';
+const CACHE_NAME = 'cropper-static-v13-font-previews';
 const APP_SHELL = [
   './',
   './index.html',
   './watermark.html',
   './fonts.html',
   './font-library/styles.css',
-  './font-library/app.js',
-  './font-library/catalog.js',
+  './font-library/app.js?v=2',
+  './font-library/catalog.js?v=2',
   './styles.css',
   './app.js',
   './watermark.js',
@@ -43,7 +43,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+      keys.filter((key) => key.startsWith('cropper-static-') && key !== CACHE_NAME).map((key) => caches.delete(key)),
     )),
   );
   self.clients.claim();
