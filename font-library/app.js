@@ -37,7 +37,7 @@
   for (const [key, min, max] of [['size',16,160],['spacing',-2,20],['line',1,2.5]]) state[key] = Number.isFinite(Number(state[key])) ? Math.max(min,Math.min(max,Number(state[key]))) : defaults[key];
   for (const key of ['color','background']) if (!/^#[0-9a-f]{6}$/i.test(state[key])) state[key] = defaults[key];
   if (!['left','center','right'].includes(state.align)) state.align = 'left';
-  let category = '全部', favoritesOnly = false, search = '', activeVariant = null, activeCoverage = null;
+  let category = '全部', favoritesOnly = false, search = '', activeVariant = null, activeCoverage = null, activeFace = null;
   let generation = 0, saveTimer, loadTimer, noticeTimer, toastTimer;
   const cache = new Map(), pending = new Map();
   const previewCoverage = unpackCoverage(catalog.previewCoveragePacked);
@@ -111,12 +111,32 @@
       meta.className = 'font-option-meta'; meta.textContent = `${f.category} · ${f.variants.length > 1 ? f.variants.length+' 种样式' : f.variants[0].axes.length ? '可变字体' : '单字重'}${state.favorites.includes(f.id) ? ' · 已收藏' : ''}`;
       arrow.className = 'font-option-arrow'; arrow.textContent = '↗'; arrow.setAttribute('aria-hidden','true');
       words.append(name,meta); button.append(words,arrow);
-      button.onclick = () => { if (state.family !== f.id) { state.family = f.id; state.variant = ''; renderList(); updateSelection(); } };
+      button.onclick = () => { if (state.family !== f.id) { state.family = f.id; state.variant = ''; updateListSelection(); updateSelection(); } };
       $('fontList').append(button);
     }
     $('resultCount').textContent = `${selected.length} 款字体`;
     $('emptyState').hidden = selected.length > 0;
     $('favoriteCount').textContent = state.favorites.length;
+  }
+  function updateListSelection() {
+    // Keep the clicked button, keyboard focus and list scroll position intact.
+    for (const button of $('fontList').children) {
+      const selected = button.dataset.family === state.family;
+      if (button.getAttribute('aria-current') === String(selected)) continue;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-current', selected ? 'true' : 'false');
+    }
+  }
+  function readyEntry(v) {
+    const key = cache.has(v.id + ':full') ? v.id + ':full' : !needsFullFont(v) ? v.id + ':preview' : null;
+    const entry = cache.get(key);
+    if (entry) { cache.delete(key); cache.set(key, entry); }
+    return entry;
+  }
+  function finishActivation() {
+    $('loadError').hidden = true;
+    $('loadStatus').textContent = '字形已就绪'; preview.setAttribute('aria-busy','false');
+    pruneCache();
   }
   function updateSelection() {
     const f = family(), v = chosenVariant(f); state.variant = v.id;
@@ -130,11 +150,17 @@
     updateFavorite(); renderAxes(v);
     const token = ++generation;
     cancelUnused(v);
-    $('loadError').hidden = true; $('glyphNotice').hidden = true;
-    $('loadStatus').textContent = '正在加载字形…'; $('paperFontName').textContent = '字形加载中';
-    preview.setAttribute('aria-busy','true');
+    $('loadError').hidden = true;
     clearTimeout(loadTimer); clearTimeout(noticeTimer);
-    loadTimer = setTimeout(() => activate(v, token), 60);
+    const entry = readyEntry(v);
+    if (entry) {
+      showFace(v, entry); finishActivation();
+    } else {
+      $('loadStatus').textContent = '正在加载字形…';
+      preview.setAttribute('aria-busy','true');
+      // Debounce only uncached downloads when users quickly browse the list.
+      loadTimer = setTimeout(() => activate(v, token), 60);
+    }
     persist();
   }
   function updateFavorite() {
@@ -198,7 +224,7 @@
     return request.promise;
   }
   function showFace(v, entry) {
-    activeVariant = v; activeCoverage = coverage(v);
+    activeVariant = v; activeCoverage = coverage(v); activeFace = entry.face;
     preview.style.fontFamily = `"${entry.face.family}", "PingFang SC", "Microsoft YaHei", sans-serif`;
     preview.dataset.fontId = v.id; applyAxes();
     $('paperFontName').textContent = `${family().name} / ${v.label}`;
@@ -218,8 +244,7 @@
         if (token !== generation) { pruneCache(); return; }
         showFace(v, entry);
       }
-      $('loadStatus').textContent = '字形已就绪'; preview.setAttribute('aria-busy','false');
-      pruneCache();
+      finishActivation();
     } catch {
       if (token !== generation) return;
       preview.setAttribute('aria-busy','false'); $('loadStatus').textContent = '加载失败';
@@ -259,9 +284,16 @@
     clearTimeout(noticeTimer);
     const v = chosenVariant(), token = ++generation;
     cancelUnused(v); clearTimeout(loadTimer);
-    preview.setAttribute('aria-busy','true'); $('loadError').hidden = true;
-    $('loadStatus').textContent = '正在加载字形…';
-    noticeTimer = setTimeout(() => activate(v, token), 120);
+    const entry = readyEntry(v);
+    if (entry) {
+      if (activeVariant?.id !== v.id || activeFace !== entry.face) showFace(v, entry);
+      else updateMissingGlyphs();
+      finishActivation();
+    } else {
+      preview.setAttribute('aria-busy','true'); $('loadError').hidden = true;
+      $('loadStatus').textContent = '正在加载字形…';
+      noticeTimer = setTimeout(() => activate(v, token), 120);
+    }
     persist();
   }
   $('fontSearch').oninput = e => { search=e.target.value.trim().toLowerCase(); renderList(); };

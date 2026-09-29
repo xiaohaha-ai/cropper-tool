@@ -12,3 +12,10 @@
 .site-nav{display:flex;align-items:center;gap:4px}.site-nav a{display:inline-flex;align-items:center;min-height:32px;padding:0 10px;font-size:12px;color:#7a7a7a;border-bottom:1px solid transparent;white-space:nowrap}
 .site-nav a:hover,.site-nav a[aria-current=page]{color:#171717}.site-nav a[aria-current=page]{border-color:#171717}.site-header .text-button{white-space:nowrap}
 @media(max-width:670px){.site-header{height:auto;min-height:60px;padding:10px 14px;gap:8px;flex-wrap:wrap}.site-branding{gap:12px}.site-nav a{padding:0 7px}.site-brand{font-size:15px;gap:6px}.site-header .text-button{font-size:10px}}
+
+/* Keep the specimen steady as font controls and loading labels change. */
+.variable-controls{padding:18px 0 0}
+.paper-caption>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-caption #loadStatus{max-width:60%;overflow:hidden;text-overflow:ellipsis}
+@media(min-width:761px) and (max-width:1100px){.font-description{min-height:3em}}
+@media(max-width:760px){.workspace-header h2{min-height:2.6em}.font-description{min-height:5.4em}}

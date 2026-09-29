@@ -7,9 +7,9 @@
   <title>免费字体库 - 裁切台</title>
   <meta name="description" content="51 款免费字体在线预览，中英文试字、字重切换与带格式文字复制。">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="font-library/styles.css">
+  <link rel="stylesheet" href="font-library/styles.css?v=3">
   <script src="font-library/catalog.js?v=2" defer></script>
-  <script src="font-library/app.js?v=2" defer></script>
+  <script src="font-library/app.js?v=3" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -41,7 +41,6 @@
         <label class="range-control compact">字距 <div><input id="letterSpacing" type="range" min="-2" max="20" step="0.5" value="0" aria-label="字距"><output id="letterSpacingValue" for="letterSpacing">0</output></div></label>
         <label class="range-control compact">行距 <div><input id="lineHeight" type="range" min="1" max="2.5" step="0.05" value="1.5" aria-label="行距"><output id="lineHeightValue" for="lineHeight">1.5</output></div></label>
       </section>
-      <div id="variableControls" class="variable-controls" hidden></div>
       <section class="preview-shell" aria-label="字体效果预览">
         <div class="canvas-toolbar">
           <div class="alignment" aria-label="文字对齐"><button data-align="left" aria-label="左对齐" class="active" aria-pressed="true">左对齐</button><button data-align="center" aria-label="居中对齐" aria-pressed="false">居中</button><button data-align="right" aria-label="右对齐" aria-pressed="false">右对齐</button></div>
@@ -58,6 +57,7 @@ Make room for good things.</textarea>
         <div id="glyphNotice" class="glyph-notice" role="status" hidden></div>
         <div id="loadError" class="error-notice" role="alert" hidden><span></span><button id="retryFont">重新加载</button></div>
       </section>
+      <div id="variableControls" class="variable-controls" hidden aria-label="可变字体调节"></div>
       <section class="sample-bar" aria-label="替换示例文字"><span>试一段</span><button data-sample="art">艺术与生活</button><button data-sample="poem">山水诗句</button><button data-sample="brand">品牌标题</button><button data-sample="english">字母与数字</button><button id="clearText" class="clear-text">清空文字</button></section>
       <footer class="workspace-footer"><span id="copyHint">粘贴时保留源格式；目标软件需安装对应字体。</span><button id="copyButton" class="text-button" aria-describedby="copyHint">复制带格式文字</button></footer>
     </main>

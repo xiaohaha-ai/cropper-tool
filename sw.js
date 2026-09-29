@@ -1,11 +1,11 @@
-const CACHE_NAME = 'cropper-static-v13-font-previews';
+const CACHE_NAME = 'cropper-static-v14-smooth-font-switch';
 const APP_SHELL = [
   './',
   './index.html',
   './watermark.html',
   './fonts.html',
-  './font-library/styles.css',
-  './font-library/app.js?v=2',
+  './font-library/styles.css?v=3',
+  './font-library/app.js?v=3',
   './font-library/catalog.js?v=2',
   './styles.css',
   './app.js',
