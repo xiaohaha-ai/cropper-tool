@@ -38,8 +38,10 @@
   for (const key of ['color','background']) if (!/^#[0-9a-f]{6}$/i.test(state[key])) state[key] = defaults[key];
   if (!['left','center','right'].includes(state.align)) state.align = 'left';
   let category = '全部', favoritesOnly = false, search = '', activeVariant = null, activeCoverage = null, activeFace = null;
-  let generation = 0, saveTimer, loadTimer, noticeTimer, toastTimer;
+  let generation = 0, saveTimer, noticeTimer, toastTimer;
   const cache = new Map(), pending = new Map();
+  let preparationTimer, preparing = 0, preferredVariant = null;
+  const preparationFailures = new Set();
   const previewCoverage = unpackCoverage(catalog.previewCoveragePacked);
   const diskCache = window.caches ? caches.open('cropper-font-previews-v1').catch(() => null) : Promise.resolve(null);
 
@@ -69,11 +71,60 @@
   function needsFullFont(v) {
     return v.preview && [...state.text].some(c => includesCode(coverage(v), c.codePointAt(0)) && !includesCode(previewCoverage, c.codePointAt(0)));
   }
+  function fontKey(v, full = false) { return v.id + (!full && v.preview ? ':preview' : ':full'); }
   function cancelUnused(v) {
-    const full = needsFullFont(v);
-    for (const [key, request] of pending) {
-      if (key === v.id + ':preview' || (full || !v.preview) && key === v.id + ':full') continue;
-      request.controller.abort(); pending.delete(key);
+    const key = fontKey(v, needsFullFont(v));
+    const ready = cache.has(key) || cache.has(v.id + ':full');
+    for (const [id, request] of pending) {
+      if (id === key) { request.background = false; continue; }
+      if (request.background && ready) continue;
+      request.controller.abort(); pending.delete(id);
+    }
+  }
+  function prepareSoon(delay = 180) {
+    clearTimeout(preparationTimer);
+    preparationTimer = setTimeout(() => {
+      if (window.requestIdleCallback) requestIdleCallback(prepareFonts, {timeout:700});
+      else setTimeout(prepareFonts, 0);
+    }, delay);
+  }
+  function prepareIntent(v) {
+    preferredVariant = v;
+    preparationFailures.delete(fontKey(v, needsFullFont(v)));
+    // Give the font under the pointer priority over speculative downloads.
+    if (!cache.has(fontKey(v, needsFullFont(v))) && !cache.has(v.id + ':full')) {
+      for (const request of pending.values()) {
+        if (request.background && request.variantId !== v.id) { request.controller.abort(); break; }
+      }
+    }
+    prepareSoon(0);
+  }
+  function prepareFonts() {
+    if (document.hidden || preview.getAttribute('aria-busy') === 'true' || preparing >= 2) return;
+    const constrained = navigator.connection?.saveData || /(^|-)2g$/.test(navigator.connection?.effectiveType || '');
+    const candidates = [];
+    if (preferredVariant) candidates.push({v:preferredVariant, full:needsFullFont(preferredVariant)});
+    if (!constrained) {
+      const listRect = $('fontList').getBoundingClientRect();
+      // Visible choices first, then favorites, then the rest of the library.
+      for (const button of $('fontList').children) {
+        const rect = button.getBoundingClientRect();
+        if (rect.bottom > listRect.top && rect.top < listRect.bottom && rect.right > listRect.left && rect.left < listRect.right) candidates.push({v:chosenVariant(byId.get(button.dataset.family)),full:false});
+      }
+      for (const id of state.favorites) candidates.push({v:chosenVariant(byId.get(id)),full:false});
+      for (const f of families) candidates.push({v:chosenVariant(f),full:false});
+    }
+    for (const {v,full} of candidates) {
+      if (preparing >= 2) break;
+      const key = fontKey(v,full);
+      if (cache.has(key) || cache.has(v.id+':full') || pending.has(key) || preparationFailures.has(key)) continue;
+      // Leave space for foreground full fonts; avoid repeatedly evicting preloaded faces.
+      const bytes = [...cache.values()].reduce((sum,e) => sum + e.bytes,0);
+      if (bytes > 48 * 1024 * 1024 && v !== preferredVariant) continue;
+      preparing++;
+      loadFont(v,full,true).catch(error => {
+        if (error.name !== 'AbortError') preparationFailures.add(key);
+      }).finally(() => { preparing--; pruneCache(); prepareSoon(80); });
     }
   }
   const preview = $('previewText');
@@ -111,12 +162,16 @@
       meta.className = 'font-option-meta'; meta.textContent = `${f.category} · ${f.variants.length > 1 ? f.variants.length+' 种样式' : f.variants[0].axes.length ? '可变字体' : '单字重'}${state.favorites.includes(f.id) ? ' · 已收藏' : ''}`;
       arrow.className = 'font-option-arrow'; arrow.textContent = '↗'; arrow.setAttribute('aria-hidden','true');
       words.append(name,meta); button.append(words,arrow);
+      button.onpointerenter = () => prepareIntent(chosenVariant(f));
+      button.onfocus = () => prepareIntent(chosenVariant(f));
+      button.ontouchstart = () => prepareIntent(chosenVariant(f));
       button.onclick = () => { if (state.family !== f.id) { state.family = f.id; state.variant = ''; updateListSelection(); updateSelection(); } };
       $('fontList').append(button);
     }
     $('resultCount').textContent = `${selected.length} 款字体`;
     $('emptyState').hidden = selected.length > 0;
     $('favoriteCount').textContent = state.favorites.length;
+    prepareSoon();
   }
   function updateListSelection() {
     // Keep the clicked button, keyboard focus and list scroll position intact.
@@ -136,7 +191,7 @@
   function finishActivation() {
     $('loadError').hidden = true;
     $('loadStatus').textContent = '字形已就绪'; preview.setAttribute('aria-busy','false');
-    pruneCache();
+    pruneCache(); prepareSoon();
   }
   function updateSelection() {
     const f = family(), v = chosenVariant(f); state.variant = v.id;
@@ -151,15 +206,14 @@
     const token = ++generation;
     cancelUnused(v);
     $('loadError').hidden = true;
-    clearTimeout(loadTimer); clearTimeout(noticeTimer);
+    clearTimeout(noticeTimer);
     const entry = readyEntry(v);
     if (entry) {
       showFace(v, entry); finishActivation();
     } else {
       $('loadStatus').textContent = '正在加载字形…';
       preview.setAttribute('aria-busy','true');
-      // Debounce only uncached downloads when users quickly browse the list.
-      loadTimer = setTimeout(() => activate(v, token), 60);
+      activate(v, token);
     }
     persist();
   }
@@ -186,34 +240,45 @@
     const v = activeVariant;
     preview.style.fontVariationSettings = v?.axes.length ? v.axes.map(a => `"${a.tag}" ${state.axes[`${v.id}:${a.tag}`] ?? a.default}`).join(', ') : 'normal';
   }
-  function loadFont(v, full = false) {
+  function loadFont(v, full = false, background = false) {
     const asset = !full && v.preview ? v.preview : v;
     const key = v.id + (asset === v ? ':full' : ':preview');
     if (cache.has(key)) {
       const entry = cache.get(key); cache.delete(key); cache.set(key, entry);
       return Promise.resolve(entry);
     }
-    if (pending.has(key)) return pending.get(key).promise;
+    if (pending.get(key)?.controller.signal.aborted) pending.delete(key);
+    if (pending.has(key)) {
+      if (!background) pending.get(key).background = false;
+      return pending.get(key).promise;
+    }
     const controller = new AbortController();
-    const request = {controller};
+    const request = {controller, background, variantId:v.id};
     request.promise = (async () => {
       const timeout = setTimeout(() => controller.abort(), 60000);
       try {
         const disk = asset === v.preview ? await diskCache : null;
         let response = await disk?.match(asset.url).catch(() => null);
+        controller.signal.throwIfAborted();
         if (!response) {
-          response = await fetch(asset.url, {signal:controller.signal});
+          response = await fetch(asset.url, {signal:controller.signal, priority:background ? 'low' : 'high'});
           if (!response.ok) throw new Error('字体下载失败');
           if (disk) {
             // Font filenames are immutable; a denied/full browser cache is non-fatal.
             disk.put(asset.url, response.clone()).catch(() => {});
           }
         }
-        const bytes = await response.arrayBuffer();
+        const blob = await response.blob();
         controller.signal.throwIfAborted();
-        const face = new FontFace(`preview-${v.id}-${asset === v ? 'full' : 'common'}`, bytes, {style:'normal',weight:'400'});
-        await face.load(); controller.signal.throwIfAborted(); document.fonts.add(face);
-        const entry = {face, bytes:bytes.byteLength, variantId:v.id}; cache.set(key,entry);
+        // URL-backed FontFace loading lets the browser decode off the click handler.
+        // ArrayBuffer constructors synchronously decode large CJK fonts on the UI thread.
+        const url = URL.createObjectURL(blob);
+        let face;
+        try {
+          face = new FontFace(`preview-${v.id}-${asset === v ? 'full' : 'common'}`, `url("${url}")`, {style:'normal',weight:'400'});
+          await face.load(); controller.signal.throwIfAborted(); document.fonts.add(face);
+        } finally { URL.revokeObjectURL(url); }
+        const entry = {face, bytes:blob.size, variantId:v.id}; cache.set(key,entry);
         return entry;
       } finally {
         clearTimeout(timeout);
@@ -233,17 +298,10 @@
   async function activate(v, token) {
     if (token !== generation) return;
     try {
-      // Reuse a full face if already loaded, otherwise show common glyphs first.
-      const cachedFull = cache.get(v.id + ':full');
-      let entry = cachedFull || await loadFont(v);
+      // Commit one final face only: keep the previous specimen intact until ready.
+      const entry = readyEntry(v) || await loadFont(v, needsFullFont(v));
       if (token !== generation) { pruneCache(); return; }
       showFace(v, entry);
-      if (!cachedFull && needsFullFont(v)) {
-        $('loadStatus').textContent = '常用字已显示，正在补全字形…';
-        entry = await loadFont(v, true);
-        if (token !== generation) { pruneCache(); return; }
-        showFace(v, entry);
-      }
       finishActivation();
     } catch {
       if (token !== generation) return;
@@ -283,7 +341,7 @@
     $('characterCount').textContent = `${[...state.text].filter(c=>c!=='\n').length} 个字符`;
     clearTimeout(noticeTimer);
     const v = chosenVariant(), token = ++generation;
-    cancelUnused(v); clearTimeout(loadTimer);
+    cancelUnused(v);
     const entry = readyEntry(v);
     if (entry) {
       if (activeVariant?.id !== v.id || activeFace !== entry.face) showFace(v, entry);
@@ -304,6 +362,16 @@
   $('variantSelect').onchange=e=>{state.variant=e.target.value;updateSelection();};
   $('retryFont').onclick=updateSelection;
   preview.addEventListener('input',textChanged);
+  $('fontList').addEventListener('scroll',() => prepareSoon(80),{passive:true});
+  $('variantSelect').addEventListener('pointerenter',() => {
+    const f = family(), index = f.variants.findIndex(v => v.id === state.variant);
+    prepareIntent(f.variants[index+1] || f.variants[0]);
+  });
+  document.addEventListener('visibilitychange',() => {
+    if (document.hidden) {
+      for (const request of pending.values()) if (request.background) request.controller.abort();
+    } else prepareSoon();
+  });
   for (const [id,key] of [['fontSize','size'],['letterSpacing','spacing'],['lineHeight','line']]) $(id).oninput=e=>{state[key]=Number(e.target.value);applyStyle();persist();};
   for (const [id,key] of [['textColor','color'],['backgroundColor','background']]) $(id).oninput=e=>{state[key]=e.target.value;applyStyle();persist();};
   document.querySelectorAll('[data-align]').forEach(b=>b.onclick=()=>{state.align=b.dataset.align;applyStyle();persist();});
