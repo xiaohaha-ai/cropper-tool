@@ -1,0 +1,16 @@
+阿里巴巴普惠体 3.0
+
+来源：阿里巴巴字体官网 https://www.alibabafonts.com/
+官方原始下载：https://fonts.alibabadesign.com/AlibabaPuHuiTi-3.zip
+官方法律声明：https://www.yuque.com/yiguang-wkqc2/hgpff0/nus9wiinq4aeiegy
+官方使用说明：https://www.yuque.com/yiguang-wkqc2/hgpff0/mlordz0p7q9nmrfw
+
+官网声明该字体可永久免费商用，具体以官方法律声明为准。
+
+安装：打开 OTF 文件夹，选择需要的字体，双击后点击“安装字体”。
+OTF 与 TTF 是不同格式的同套字体，一般只需安装其中一种格式。
+网页字体文件夹供网页开发使用。
+
+官方完整压缩包实际包含 9 种字重，以及 RegularL3 扩展字符版本，共 10 款字体，每款提供 5 种格式。
+字重：Thin、Light、Regular、Medium、SemiBold、Bold、ExtraBold、Heavy、Black。
+本次只下载并整理文件，未安装到系统。

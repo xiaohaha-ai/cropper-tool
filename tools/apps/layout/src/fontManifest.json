@@ -1,0 +1,256 @@
+[
+  {
+    "id": "source-han-sans",
+    "label": "思源黑体",
+    "family": "Source Han Sans SC",
+    "value": "\"Source Han Sans SC\", sans-serif",
+    "license": "/fonts/local/source-han-sans-NOTICE.txt",
+    "faces": [
+      {
+        "weight": 250,
+        "url": "/fonts/local/SourceHanSansSC-ExtraLight.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-ExtraLight.otf",
+        "characters": 44853,
+        "bytes": 9626768
+      },
+      {
+        "weight": 300,
+        "url": "/fonts/local/SourceHanSansSC-Light.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Light.otf",
+        "characters": 44853,
+        "bytes": 11130592
+      },
+      {
+        "weight": 350,
+        "url": "/fonts/local/SourceHanSansSC-Normal.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Normal.otf",
+        "characters": 44853,
+        "bytes": 11463216
+      },
+      {
+        "weight": 400,
+        "url": "/fonts/local/SourceHanSansSC-Regular.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf",
+        "characters": 44853,
+        "bytes": 11541392
+      },
+      {
+        "weight": 500,
+        "url": "/fonts/local/SourceHanSansSC-Medium.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Medium.otf",
+        "characters": 44853,
+        "bytes": 11771568
+      },
+      {
+        "weight": 700,
+        "url": "/fonts/local/SourceHanSansSC-Bold.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf",
+        "characters": 44853,
+        "bytes": 12174244
+      },
+      {
+        "weight": 900,
+        "url": "/fonts/local/SourceHanSansSC-Heavy.woff2",
+        "source": "思源黑体-SC-2.005/OTF/SimplifiedChinese/SourceHanSansSC-Heavy.otf",
+        "characters": 44853,
+        "bytes": 12321840
+      }
+    ]
+  },
+  {
+    "id": "source-han-serif",
+    "label": "思源宋体",
+    "family": "Source Han Serif SC",
+    "value": "\"Source Han Serif SC\", serif",
+    "license": "/fonts/local/source-han-serif-NOTICE.txt",
+    "faces": [
+      {
+        "weight": 250,
+        "url": "/fonts/local/SourceHanSerifSC-ExtraLight.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-ExtraLight.otf",
+        "characters": 44779,
+        "bytes": 14185912
+      },
+      {
+        "weight": 300,
+        "url": "/fonts/local/SourceHanSerifSC-Light.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-Light.otf",
+        "characters": 44779,
+        "bytes": 16481428
+      },
+      {
+        "weight": 400,
+        "url": "/fonts/local/SourceHanSerifSC-Regular.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-Regular.otf",
+        "characters": 44779,
+        "bytes": 16713364
+      },
+      {
+        "weight": 500,
+        "url": "/fonts/local/SourceHanSerifSC-Medium.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-Medium.otf",
+        "characters": 44779,
+        "bytes": 17065212
+      },
+      {
+        "weight": 600,
+        "url": "/fonts/local/SourceHanSerifSC-SemiBold.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-SemiBold.otf",
+        "characters": 44779,
+        "bytes": 17112484
+      },
+      {
+        "weight": 700,
+        "url": "/fonts/local/SourceHanSerifSC-Bold.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-Bold.otf",
+        "characters": 44779,
+        "bytes": 17838116
+      },
+      {
+        "weight": 900,
+        "url": "/fonts/local/SourceHanSerifSC-Heavy.woff2",
+        "source": "思源宋体-SC-2.003/OTF/SimplifiedChinese/SourceHanSerifSC-Heavy.otf",
+        "characters": 44779,
+        "bytes": 16711896
+      }
+    ]
+  },
+  {
+    "id": "alibaba-puhuiti",
+    "label": "阿里巴巴普惠体",
+    "family": "Alibaba PuHuiTi 3",
+    "value": "\"Alibaba PuHuiTi 3\", \"Alibaba PuHuiTi 3 L3\", sans-serif",
+    "license": "/fonts/local/alibaba-puhuiti-NOTICE.txt",
+    "faces": [
+      {
+        "weight": 250,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-35-Thin.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-35-Thin.woff2",
+        "characters": 29197,
+        "bytes": 5289936
+      },
+      {
+        "weight": 300,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-45-Light.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-45-Light.woff2",
+        "characters": 29197,
+        "bytes": 5382804
+      },
+      {
+        "weight": 400,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-55-Regular.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-55-Regular.woff2",
+        "characters": 29197,
+        "bytes": 5256740
+      },
+      {
+        "weight": 400,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-55-RegularL3.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-55-RegularL3.woff2",
+        "characters": 60337,
+        "bytes": 10410156,
+        "family": "Alibaba PuHuiTi 3 L3"
+      },
+      {
+        "weight": 500,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-65-Medium.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-65-Medium.woff2",
+        "characters": 29197,
+        "bytes": 5469328
+      },
+      {
+        "weight": 600,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-75-SemiBold.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-75-SemiBold.woff2",
+        "characters": 29197,
+        "bytes": 5481108
+      },
+      {
+        "weight": 700,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-85-Bold.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-85-Bold.woff2",
+        "characters": 29197,
+        "bytes": 5560840
+      },
+      {
+        "weight": 800,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-95-ExtraBold.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-95-ExtraBold.woff2",
+        "characters": 29197,
+        "bytes": 5382784
+      },
+      {
+        "weight": 900,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-105-Heavy.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-105-Heavy.woff2",
+        "characters": 9638,
+        "bytes": 1492108
+      },
+      {
+        "weight": 1000,
+        "url": "/fonts/local/AlibabaPuHuiTi-3-115-Black.woff2",
+        "source": "阿里巴巴普惠体-3.0/网页字体/AlibabaPuHuiTi-3-115-Black.woff2",
+        "characters": 9638,
+        "bytes": 1423292
+      }
+    ]
+  },
+  {
+    "id": "noto-sans-sc",
+    "label": "Noto Sans SC",
+    "family": "Noto Sans SC",
+    "value": "\"Noto Sans SC\", sans-serif",
+    "license": "/fonts/local/noto-sans-sc-NOTICE.txt",
+    "faces": [
+      {
+        "weight": 100,
+        "url": "/fonts/local/NotoSansSC-Thin.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Thin.otf",
+        "characters": 30890,
+        "bytes": 5198596
+      },
+      {
+        "weight": 300,
+        "url": "/fonts/local/NotoSansSC-Light.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Light.otf",
+        "characters": 30890,
+        "bytes": 5880780
+      },
+      {
+        "weight": 350,
+        "url": "/fonts/local/NotoSansSC-DemiLight.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-DemiLight.otf",
+        "characters": 30890,
+        "bytes": 6049244
+      },
+      {
+        "weight": 400,
+        "url": "/fonts/local/NotoSansSC-Regular.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Regular.otf",
+        "characters": 30890,
+        "bytes": 6072948
+      },
+      {
+        "weight": 500,
+        "url": "/fonts/local/NotoSansSC-Medium.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Medium.otf",
+        "characters": 30890,
+        "bytes": 6196832
+      },
+      {
+        "weight": 700,
+        "url": "/fonts/local/NotoSansSC-Bold.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Bold.otf",
+        "characters": 30890,
+        "bytes": 6417764
+      },
+      {
+        "weight": 900,
+        "url": "/fonts/local/NotoSansSC-Black.woff2",
+        "source": "NotoSansSC-2.004/OTF/NotoSansSC-Black.otf",
+        "characters": 30890,
+        "bytes": 6516352
+      }
+    ]
+  }
+]

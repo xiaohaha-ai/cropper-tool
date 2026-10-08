@@ -1,0 +1,17 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {Box3,Vector3} from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {getPart} from '../src/catalog';
+import {createPart} from '../src/parts';
+import {starter,parseProject,type Triple} from '../src/assembly';
+import {exportProject} from '../src/project-export';
+Reflect.set(globalThis,'FileReader',class {result:ArrayBuffer|null=null;onloadend:(()=>void)|null=null;readAsArrayBuffer(blob:Blob){void blob.arrayBuffer().then(data=>{this.result=data;this.onloadend?.();});}});
+const project=starter(),models=new Map(project.pieces.map(p=>[p.id,createPart(getPart(p.partId),p.color)]));
+const data=await exportProject(project,models),decoded=await new GLTFLoader().parseAsync(data,'');
+let count=0;
+decoded.scene.traverse(obj=>{if(!obj.userData.instanceId)return;count++;const p=project.pieces.find(p=>p.id===obj.userData.instanceId)!;assert.ok(p);const source=models.get(p.id)!.group;source.position.fromArray(p.position);source.rotation.set(...p.rotation.map(n=>n*Math.PI/2) as Triple);const expected=new Box3().setFromObject(source),actual=new Box3().setFromObject(obj);for(const edge of ['min','max'] as const)assert.ok(actual[edge].clone().multiplyScalar(1000).distanceTo(expected[edge])<.01);assert.equal(obj.userData.partId,p.partId);});
+assert.equal(count,project.pieces.length);assert.deepEqual(parseProject(JSON.parse(JSON.stringify(project))),project);
+await mkdir('examples',{recursive:true});await writeFile('examples/rainbow-gate.brick.json',JSON.stringify(project,null,2));await writeFile('examples/rainbow-gate.glb',Buffer.from(data));
+const size=new Box3().setFromObject(decoded.scene).getSize(new Vector3());models.forEach(m=>m.dispose());
+console.log(`PASS exported and decoded ${count} assembled parts, ${data.byteLength} bytes, size in metres ${size.toArray().map(n=>n.toFixed(4)).join(' × ')}`);

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {defaults,keyCombo,keyLabel,loadBindings,rebind,shortcutActions,bindingError,type KeyInput} from '../src/shortcuts';
+const event=(key:string,more:Partial<KeyInput>={}):KeyInput=>({key,ctrlKey:false,metaKey:false,altKey:false,shiftKey:false,...more});
+const keys=defaults();assert.equal(new Set(Object.values(keys)).size,shortcutActions.length);Object.values(keys).forEach(k=>assert.equal(bindingError(k),null));
+assert.equal(keyCombo(event('z',{metaKey:true})),keys.undo);assert.equal(keyCombo(event('Z',{ctrlKey:true,shiftKey:true})),keys.redo);
+assert.equal(keyCombo(event('Backspace')),keys.delete);assert.equal(keyCombo(event('Delete')),keys.delete);assert.equal(keyCombo(event('?',{shiftKey:true})),'shift+/');
+assert.equal(keyCombo(event('r',{isComposing:true})),null);assert.equal(keyCombo(event('r',{keyCode:229})),null);assert.equal(keyCombo(event('r',{altKey:true})),null);assert.equal(keyCombo(event('r',{ctrlKey:true,metaKey:true})),null);
+const modified=rebind(keys,'rotateY','t');assert.equal(modified.rotateY,'t');assert.equal(keys.rotateY,'r');assert.throws(()=>rebind(keys,'rotateY','m'),/移动零件/);assert.throws(()=>rebind(keys,'rotateY','escape'));assert.throws(()=>rebind(keys,'rotateY','shift+/'));assert.throws(()=>rebind(keys,'rotateY','mod+r'));assert.throws(()=>rebind(keys,'rotateY','alt+r'));
+assert.deepEqual(loadBindings(JSON.stringify({version:1,bindings:modified})),modified);for(const input of ['bad','null',JSON.stringify({version:1,bindings:{...keys,rotateY:'m'}}),JSON.stringify({version:2,bindings:keys}),JSON.stringify({version:1,bindings:{}})])assert.deepEqual(loadBindings(input),keys);
+assert.equal(keyLabel(keys.undo,true),'⌘ + Z');assert.equal(keyLabel(keys.undo,false),'Ctrl + Z');assert.equal(keyLabel(keys.left),'←');
+console.log('PASS shortcuts: unique defaults, Mac/Windows modifiers, Delete/Backspace, IME, reserved combinations, conflict rejection, immutable remap, persistence and corrupt-settings recovery.');
