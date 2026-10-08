@@ -16,6 +16,7 @@ export function installShortcuts(options:{run:(action:ShortcutAction)=>void;canc
  dialog.querySelector<HTMLButtonElement>('#reset-shortcuts')!.onclick=()=>{recording=null;bindings=defaults();const saved=persist();render();options.changed();feedback.textContent=saved?'已恢复默认快捷键并保存。':'已恢复默认；浏览器无法保存设置，本次会话有效。';};
  document.getElementById('shortcut-settings')!.onclick=open;
  function keydown(event:KeyboardEvent){
+  if(event.composedPath().some(node=>node instanceof Element&&node.localName==='tool-switcher'))return;
   if(event.isComposing||event.keyCode===229)return;
   if(dialog.open){
    if(!recording)return;
