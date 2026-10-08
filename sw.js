@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cropper-static-v17-tool-navigation';
+const CACHE_NAME = 'cropper-static-v18-tool-navigation';
 const APP_SHELL = [
   './',
   './index.html',
