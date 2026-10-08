@@ -1,75 +1,9 @@
-/* One navigation treatment across the three tools. */
-.product-nav, .site-nav {
-  --nav-text: var(--muted, #595959);
-  --nav-hover: var(--surface-selected, #f0f0f0);
-  --nav-active: var(--green, #171717);
-  --nav-active-text: var(--green-ink, #ffffff);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* The same compact tool switcher on all three original tools. */
+.topbar-branding,.site-branding{gap:24px;min-width:0}
+.topbar,.site-header{overflow:visible;z-index:60}
+@media(max-width:760px){
+  .topbar,.site-header{height:68px;min-height:68px;flex-basis:68px;padding:0 14px;gap:10px;flex-wrap:nowrap}
+  .topbar-branding,.site-branding{gap:12px}
+  .brand,.site-brand{font-size:14px;white-space:nowrap}
 }
-.site-nav {
-  --nav-text: #595959;
-  --nav-hover: #f0f0f0;
-  --nav-active: #171717;
-  --nav-active-text: #ffffff;
-}
-.topbar-branding, .site-branding { gap: 32px; }
-.product-nav .product-nav__item, .site-nav a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 6px;
-  color: var(--nav-text);
-  background: transparent;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-.product-nav .product-nav__item:hover, .site-nav a:hover {
-  color: var(--text, #171717);
-  background: var(--nav-hover);
-}
-.product-nav .product-nav__item[aria-current="page"], .site-nav a[aria-current="page"] {
-  color: var(--nav-active-text);
-  background: var(--nav-active);
-  font-weight: 600;
-}
-.product-nav a:focus-visible, .site-nav a:focus-visible {
-  outline: 2px solid var(--nav-active);
-  outline-offset: 3px;
-}
-@media(max-width:760px) {
-  .topbar, .site-header {
-    position: relative;
-    height: 116px;
-    min-height: 116px;
-    flex-basis: 116px;
-    padding: 0 14px 56px;
-    gap: 12px;
-    flex-wrap: nowrap;
-    align-items: center;
-  }
-  .topbar-branding, .site-branding { gap: 0; }
-  .topbar .product-nav, .site-nav {
-    position: absolute;
-    inset: auto 14px 8px;
-    display: grid;
-    grid-template-columns: 1fr 1.15fr 1.7fr;
-    gap: 4px;
-  }
-  .product-nav .product-nav__item, .site-nav a {
-    min-width: 0;
-    padding: 0 8px;
-    font-size: 13px;
-  }
-}
-@media(prefers-reduced-motion:reduce) {
-  .product-nav .product-nav__item, .site-nav a { transition: none; }
-}
+@media(max-width:450px){.topbar-branding,.site-branding{gap:8px}.brand-mark,.site-mark{display:none}.topbar-actions{gap:6px}.topbar,.site-header{padding-inline:10px}}

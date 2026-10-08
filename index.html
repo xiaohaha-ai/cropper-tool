@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#171717" />
-  <meta name="description" content="裁切、去水印、免费字体库、乐高拼图与秀米排版，选择工具即可开始使用。" />
+  <meta name="description" content="裁切、去水印、免费字体库、积木拼搭与图文排版，选择工具即可开始使用。" />
   <link rel="manifest" href="manifest.webmanifest" />
   <script>
     try {
@@ -17,20 +17,21 @@
       document.documentElement.dataset.theme = 'dark';
     }
   </script>
-  <title>工具首页 - 裁切台</title>
+  <title>工具首页 - 创作工具箱</title>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="home.css" />
+  <link rel="stylesheet" href="home.css?v=2" />
   <script src="vendor/lucide.min.js" defer></script>
-  <script src="home.js" defer></script>
+  <script src="home.js?v=2" defer></script>
 </head>
 <body class="home-page">
   <header class="topbar">
-    <a class="brand" href="./" aria-label="裁切台主页"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span>裁切台</span></a>
+    <a class="brand" href="./" aria-label="创作工具箱主页"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span>创作工具箱</span></a>
     <button class="theme-toggle" id="homeThemeToggle" type="button" aria-label="切换主题" title="切换主题"><i class="theme-icon theme-icon--sun" data-lucide="sun" aria-hidden="true"></i><i class="theme-icon theme-icon--moon" data-lucide="moon" aria-hidden="true"></i></button>
   </header>
   <main class="home-main">
     <h1>选择一个工具</h1>
+    <section class="recent-work" id="recentWork" hidden aria-labelledby="recentHeading"><h2 id="recentHeading">继续上次作品</h2><div id="recentLinks"></div><p>作品保存在当前浏览器，换设备前请导出备份。</p></section>
     <nav class="tool-grid" aria-label="工具入口">
       <a class="tool-card" href="cropper.html" aria-labelledby="cropperTitle" aria-describedby="cropperDescription">
         <i class="tool-icon" data-lucide="crop" aria-hidden="true"></i>
@@ -49,12 +50,12 @@
       </a>
       <a class="tool-card" href="lego/" aria-labelledby="legoTitle" aria-describedby="legoDescription">
         <i class="tool-icon" data-lucide="blocks" aria-hidden="true"></i>
-        <div class="tool-copy"><h2 id="legoTitle">乐高拼图</h2><p id="legoDescription">挑选积木，自由拼搭或跟随模型创作。</p></div>
+        <div class="tool-copy"><h2 id="legoTitle">积木拼搭</h2><p id="legoDescription">挑选积木，自由拼搭或跟随模型创作。</p></div>
         <span class="tool-enter" aria-hidden="true">进入工具<i data-lucide="arrow-up-right"></i></span>
       </a>
       <a class="tool-card" href="layout/" aria-labelledby="layoutTitle" aria-describedby="layoutDescription">
         <i class="tool-icon" data-lucide="panels-top-left" aria-hidden="true"></i>
-        <div class="tool-copy"><h2 id="layoutTitle">秀米排版</h2><p id="layoutDescription">编辑图文、管理素材，导出你的作品。</p></div>
+        <div class="tool-copy"><h2 id="layoutTitle">图文排版</h2><p id="layoutDescription">秀米风格编辑器，编辑图文并导出作品。</p></div>
         <span class="tool-enter" aria-hidden="true">进入工具<i data-lucide="arrow-up-right"></i></span>
       </a>
     </nav>

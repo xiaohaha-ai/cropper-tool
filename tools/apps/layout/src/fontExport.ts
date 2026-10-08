@@ -32,7 +32,7 @@ export async function embedArticleFonts(paper: HTMLElement): Promise<string> {
     used.weights.add(fontWeight(font.value, Number(style.fontWeight) || 400));
   }
   if (document.fonts) await Promise.all([...usage].flatMap(([family, used]) =>
-    [...used.weights].map((weight) => loadFont(family, weight))));
+    [...used.weights].map((weight) => loadFont(family, weight, [...used.points].map(point => String.fromCodePoint(point)).join("")))));
   const rules: { rule: CSSFontFaceRule; base: string }[] = [];
   const visit = (sheet: CSSStyleSheet) => {
     let entries: CSSRuleList;

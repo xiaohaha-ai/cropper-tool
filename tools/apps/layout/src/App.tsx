@@ -1,4 +1,5 @@
 import {
+  createElement,
   useState,
   useRef,
   useEffect,
@@ -8,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { FONT_OPTIONS, SANS_FONT } from "./fonts";
-import { loadContentFont, warmFonts } from "./fontLoading";
+import { loadContentFont } from "./fontLoading";
 import { AssetLibrary } from "./AssetLibraryPanel";
 import { TemplateCards } from "./TemplateCards";
 import { applyFontFamily, selectionFont, MIXED_FONT } from "./fontEditing";
@@ -396,11 +397,7 @@ export default function App() {
     setSelected(id);
     if (showToolbar) setToolbarVisible(true);
   }, []);
-  useEffect(() => {
-    if (!studio.ready) return;
-    const timer = window.setTimeout(() => { void warmFonts(); }, 500);
-    return () => window.clearTimeout(timer);
-  }, [studio.ready]);
+
   useEffect(() => {
     fontRequest.current += 1;
     setPendingFont("");
@@ -1078,6 +1075,8 @@ export default function App() {
   const setMeta = (key: keyof ArticleData, value: unknown) =>
     change((a) => ({ ...a, [key]: value }), `meta:${key}`);
   const topActions = [
+    { name: "导入工程", icon: UploadSimple, run: () => importInput.current?.click() },
+    { name: "导出备份", icon: FileJs, run: () => void exportAction("json") },
     { name: "打开", icon: FolderOpen, run: () => setModal("open") },
     { name: "预览", icon: Camera, run: () => setModal("preview") },
     { name: "保存", icon: FloppyDisk, run: () => void save() },
@@ -1215,18 +1214,8 @@ export default function App() {
     >
       <header className="app-header">
         <div className="brand">
-          <img
-            className="brand-logo"
-            src="/assets/xiumi-logo.png"
-            alt="秀米风格编辑器"
-          />
-          <span className="brand-name">
-            秀米<span>XIUMI</span>
-          </span>
-          <span className="breadcrumb-separator">/</span>
-          <button onClick={() => setModal("open")}>我的图文</button>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">图文排版</span>
+          <a className="tool-home-link" href="../" aria-label="返回工具首页">创作工具箱</a>
+          {createElement("tool-switcher", { current: "layout" })}
         </div>
         <nav className="top-actions" ref={topNav} aria-label="图文操作">
           {topActions.map(({ name, icon: Icon, run, menu }) => (

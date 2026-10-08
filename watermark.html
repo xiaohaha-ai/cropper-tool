@@ -17,25 +17,22 @@
     }
   </script>
   <meta name="description" content="浏览器本地运行的图片局部修复与去水印工具。" />
-  <title>去水印 - 裁切台</title>
+  <title>去水印 - 创作工具箱</title>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="navigation.css" />
+  <link rel="stylesheet" href="navigation.css?v=2" />
+  <script src="tool-switcher.js" defer></script>
 </head>
 
 <body>
   <main class="app-shell watermark-app">
     <header class="topbar">
       <div class="topbar-branding">
-        <a class="brand" href="./" aria-label="裁切台主页">
+        <a class="brand" href="./" aria-label="创作工具箱主页">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
-          <span>裁切台</span>
+          <span>创作工具箱</span>
         </a>
-        <nav class="product-nav" aria-label="工具导航">
-          <a class="product-nav__item" href="cropper.html">裁切</a>
-          <a class="product-nav__item is-active" href="watermark.html" aria-current="page">去水印</a>
-          <a class="product-nav__item" href="fonts.html">免费字体库</a>
-        </nav>
+        <tool-switcher current="watermark"></tool-switcher>
       </div>
       <div class="topbar-actions">
         <button class="theme-toggle" id="watermarkThemeToggle" type="button" aria-label="切换至亮色主题" title="切换至亮色主题">

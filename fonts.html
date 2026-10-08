@@ -4,19 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>免费字体库 - 裁切台</title>
+  <title>免费字体库 - 创作工具箱</title>
   <meta name="description" content="51 款免费字体在线预览，中英文试字、字重切换与带格式文字复制。">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="font-library/styles.css?v=5">
-  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="navigation.css?v=2">
   <script src="font-library/catalog.js?v=2" defer></script>
   <script src="font-library/app.js?v=4" defer></script>
+  <script src="tool-switcher.js" defer></script>
 </head>
 <body>
   <header class="site-header">
     <div class="site-branding">
-      <a class="site-brand" href="./" aria-label="裁切台主页"><span class="site-mark" aria-hidden="true"><i></i><i></i></span>裁切台</a>
-      <nav class="site-nav" aria-label="工具导航"><a href="cropper.html">裁切</a><a href="watermark.html">去水印</a><a href="fonts.html" aria-current="page">免费字体库</a></nav>
+      <a class="site-brand" href="./" aria-label="创作工具箱主页"><span class="site-mark" aria-hidden="true"><i></i><i></i></span>创作工具箱</a>
+      <tool-switcher current="fonts"></tool-switcher>
     </div>
     <button id="helpButton" class="text-button">使用说明</button>
   </header>

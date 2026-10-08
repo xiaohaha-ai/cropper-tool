@@ -1,7 +1,7 @@
 {
-  "name": "裁切台",
-  "short_name": "裁切台",
-  "description": "图片裁切、去水印和免费字体预览，一站式选择工具。",
+  "name": "创作工具箱",
+  "short_name": "创作工具箱",
+  "description": "裁切、去水印、免费字体库、积木拼搭与图文排版。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -168,6 +168,11 @@ export function useStudio() {
       saving.current = job;
       try {
         await job;
+        try {
+          localStorage.setItem("creative-tool-recent:layout", JSON.stringify({
+            title: snapshot.documents[0].title || "未命名图文", updatedAt: Date.now(),
+          }));
+        } catch { /* The article itself is already saved in IndexedDB. */ }
         setSaveStatus("已保存在本机");
       } catch {
         setSaveStatus("保存失败，请立即导出工程备份");
@@ -212,6 +217,21 @@ export function useStudio() {
     };
     document.addEventListener("visibilitychange", flush);
     return () => document.removeEventListener("visibilitychange", flush);
+  }, [ready, persist]);
+  useEffect(() => {
+    const leaveTool = (event: MouseEvent) => {
+      if (!ready || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const path = event.composedPath();
+      const link = path.find(node => node instanceof HTMLAnchorElement) as HTMLAnchorElement | undefined;
+      const isToolLink = path.some(node => node instanceof Element && node.localName === "tool-switcher");
+      if (!link || (!isToolLink && !link.classList.contains("tool-home-link")) || link.target === "_blank") return;
+      event.preventDefault();
+      void persist().then(() => { window.location.assign(link.href); }).catch(() => {
+        // persist already exposes the failure; keep the unsaved document open.
+      });
+    };
+    document.addEventListener("click", leaveTool, true);
+    return () => document.removeEventListener("click", leaveTool, true);
   }, [ready, persist]);
   const open = useCallback(
     (a: Article) => {

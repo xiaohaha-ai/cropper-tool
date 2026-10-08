@@ -1,0 +1,15 @@
+.article-paper,.preview-paper{font-family:"Source Han Sans SC",sans-serif}
+.app-header{gap:18px;overflow:visible;z-index:60}
+.app-header .brand{gap:14px;min-width:0}
+.tool-home-link{font:600 15px system-ui,sans-serif;color:#343434;white-space:nowrap;text-decoration:none;padding-block:10px}
+.tool-home-link:focus-visible{outline:2px solid #d19343;outline-offset:3px}
+.app-header .top-actions{position:static;transform:none;margin-left:auto;gap:14px;align-self:center}
+.top-action-slot>button{min-width:44px;min-height:44px}
+.app-header .account .local-label{display:none}
+@media(max-width:1250px){.app-header .account{display:none}.app-header .top-actions{gap:8px}.app-header .brand{gap:10px}}
+@media(max-width:900px){
+ .studio{--header-height:112px}.app-header{height:var(--header-height);padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px}
+ .app-header .brand{width:100%;justify-content:space-between}.app-header .brand>.tool-home-link{display:block;font-size:14px}.app-header .top-actions{width:100%;margin:0;justify-content:space-between;gap:2px}
+ .top-action-slot>button{width:40px;min-width:40px;min-height:44px;font-size:10px}
+ .top-action-slot .header-menu{top:48px;right:0;left:auto}
+}

@@ -1,76 +1,29 @@
-const CACHE_NAME = 'cropper-static-v19-more-tools';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './cropper.html',
-  './home.css',
-  './navigation.css',
-  './home.js',
-  './watermark.html',
-  './fonts.html',
-  './font-library/styles.css?v=5',
-  './font-library/app.js?v=4',
-  './font-library/catalog.js?v=2',
-  './styles.css',
-  './app.js',
-  './watermark.js',
-  './manifest.webmanifest',
-  './assets/icon.svg',
-  './vendor/jszip.min.js',
-  './vendor/lucide.min.js',
-  './vendor/tesseract/tesseract.min.js',
-  './vendor/tesseract/worker.min.js',
-  './vendor/onnxruntime/ort.min.js',
-  './vendor/onnxruntime/ort-wasm-simd.wasm',
-  './vendor/onnxruntime/ort-wasm.wasm',
-  './vendor/tesseract-core/tesseract-core.js',
-  './vendor/tesseract-core/tesseract-core.wasm',
-  './vendor/tesseract-core/tesseract-core.wasm.js',
-  './vendor/tesseract-core/tesseract-core-lstm.js',
-  './vendor/tesseract-core/tesseract-core-lstm.wasm',
-  './vendor/tesseract-core/tesseract-core-lstm.wasm.js',
-  './vendor/tesseract-core/tesseract-core-simd.js',
-  './vendor/tesseract-core/tesseract-core-simd.wasm',
-  './vendor/tesseract-core/tesseract-core-simd.wasm.js',
-  './vendor/tesseract-core/tesseract-core-simd-lstm.js',
-  './vendor/tesseract-core/tesseract-core-simd-lstm.wasm',
-  './vendor/tesseract-core/tesseract-core-simd-lstm.wasm.js',
-  './vendor/tesseract-lang/4.0.0/eng.traineddata.gz',
-  './vendor/tesseract-lang/4.0.0/chi_sim.traineddata.gz',
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+const CACHE_NAME = 'cropper-static-v20-creative-tools';
+// Only the small portal shell is downloaded during installation.
+const APP_SHELL = ['./','./index.html','./home.css?v=2','./styles.css','./home.js?v=2','./tool-switcher.js','./navigation.css?v=2','./manifest.webmanifest','./assets/icon.svg','./vendor/lucide.min.js'];
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
 });
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key.startsWith('cropper-static-') && key !== CACHE_NAME).map((key) => caches.delete(key)),
-    )),
-  );
-  self.clients.claim();
+self.addEventListener('activate',event=>{
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('cropper-static-')&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-  const appShellRequest = url.origin === self.location.origin
-    && (event.request.mode === 'navigate' || (/\.(html|css|js)$/).test(url.pathname));
-
-  if (appShellRequest) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => caches.match(event.request)),
-    );
-    return;
-  }
-
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  const url=new URL(event.request.url);
+  if(url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope))return;
+  const editable=event.request.mode==='navigate'||/\.(html|css|js)$/.test(url.pathname);
+  const cacheable=editable||/\.(woff2|wasm|gz|png|jpg|webp|svg|json)$/.test(url.pathname);
+  if(!cacheable)return;
+  event.respondWith((async()=>{
+    const cache=await caches.open(CACHE_NAME);
+    const cached=await cache.match(event.request);
+    if(cached&&!editable)return cached;
+    try{
+      const response=await fetch(event.request);
+      if(response.ok){event.waitUntil(cache.put(event.request,response.clone()).catch(()=>{}));}
+      return response;
+    }catch{
+      return cached||Response.error();
+    }
+  })());
 });
