@@ -1,0 +1,75 @@
+/* One navigation treatment across the three tools. */
+.product-nav, .site-nav {
+  --nav-text: var(--muted, #595959);
+  --nav-hover: var(--surface-selected, #f0f0f0);
+  --nav-active: var(--green, #171717);
+  --nav-active-text: var(--green-ink, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.site-nav {
+  --nav-text: #595959;
+  --nav-hover: #f0f0f0;
+  --nav-active: #171717;
+  --nav-active-text: #ffffff;
+}
+.topbar-branding, .site-branding { gap: 32px; }
+.product-nav .product-nav__item, .site-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--nav-text);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.product-nav .product-nav__item:hover, .site-nav a:hover {
+  color: var(--text, #171717);
+  background: var(--nav-hover);
+}
+.product-nav .product-nav__item[aria-current="page"], .site-nav a[aria-current="page"] {
+  color: var(--nav-active-text);
+  background: var(--nav-active);
+  font-weight: 600;
+}
+.product-nav a:focus-visible, .site-nav a:focus-visible {
+  outline: 2px solid var(--nav-active);
+  outline-offset: 3px;
+}
+@media(max-width:760px) {
+  .topbar, .site-header {
+    position: relative;
+    height: 116px;
+    min-height: 116px;
+    flex-basis: 116px;
+    padding: 0 14px 56px;
+    gap: 12px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .topbar-branding, .site-branding { gap: 0; }
+  .topbar .product-nav, .site-nav {
+    position: absolute;
+    inset: auto 14px 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.15fr 1.7fr;
+    gap: 4px;
+  }
+  .product-nav .product-nav__item, .site-nav a {
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .product-nav .product-nav__item, .site-nav a { transition: none; }
+}
