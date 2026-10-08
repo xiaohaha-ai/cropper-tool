@@ -1,7 +1,7 @@
 {
   "name": "裁切台",
   "short_name": "裁切台",
-  "description": "在浏览器本地完成图片裁切、智能选图和导出。",
+  "description": "图片裁切、去水印和免费字体预览，一站式选择工具。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,10 +1,13 @@
-const CACHE_NAME = 'cropper-static-v15-font-preparation';
+const CACHE_NAME = 'cropper-static-v16-tool-home';
 const APP_SHELL = [
   './',
   './index.html',
+  './cropper.html',
+  './home.css',
+  './home.js',
   './watermark.html',
   './fonts.html',
-  './font-library/styles.css?v=3',
+  './font-library/styles.css?v=5',
   './font-library/app.js?v=4',
   './font-library/catalog.js?v=2',
   './styles.css',
@@ -53,7 +56,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   const appShellRequest = url.origin === self.location.origin
-    && (/\.(html|css|js)$/).test(url.pathname);
+    && (event.request.mode === 'navigate' || (/\.(html|css|js)$/).test(url.pathname));
 
   if (appShellRequest) {
     event.respondWith(

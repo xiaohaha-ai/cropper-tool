@@ -348,7 +348,7 @@ output { color: var(--paper); font-family: var(--mono); font-size: 11px; text-al
   *, *::before, *::after { transition-duration: 1ms !important; }
 }
 
-/* Keep all three tool links usable on narrow screens. */
+/* Keep the home and tool links usable on narrow screens. */
 .product-nav__item { white-space: nowrap; }
 @media (max-width: 480px) {
   .topbar { height: auto; min-height: 92px; flex-basis: auto; position: relative; padding-bottom: 38px; }

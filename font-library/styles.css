@@ -19,3 +19,6 @@
 .paper-caption #loadStatus{max-width:60%;overflow:hidden;text-overflow:ellipsis}
 @media(min-width:761px) and (max-width:1100px){.font-description{min-height:3em}}
 @media(max-width:760px){.workspace-header h2{min-height:2.6em}.font-description{min-height:5.4em}}
+
+/* Give the home link its own navigation row on small screens. */
+@media(max-width:480px){.site-header{position:relative;min-height:98px;padding-bottom:44px}.site-nav{position:absolute;left:14px;bottom:8px}.site-branding{gap:12px}}
