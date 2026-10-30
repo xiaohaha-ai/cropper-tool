@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cropper-static-v20-creative-tools';
+const CACHE_NAME = 'cropper-static-v21-jizura';
 // Only the small portal shell is downloaded during installation.
 const APP_SHELL = ['./','./index.html','./home.css?v=2','./styles.css','./home.js?v=2','./tool-switcher.js','./navigation.css?v=2','./manifest.webmanifest','./assets/icon.svg','./vendor/lucide.min.js'];
 self.addEventListener('install',event=>{

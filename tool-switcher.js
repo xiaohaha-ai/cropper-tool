@@ -1,6 +1,6 @@
 (() => {
   const root = new URL('./', document.currentScript.src);
-  const tools = [ ['cropper','裁切','cropper.html'], ['watermark','去水印','watermark.html'], ['fonts','免费字体库','fonts.html'], ['lego','积木拼搭','lego/'], ['layout','图文排版','layout/'] ];
+  const tools = [ ['cropper','裁切','cropper.html'], ['watermark','去水印','watermark.html'], ['fonts','免费字体库','fonts.html'], ['lego','积木拼搭','lego/'], ['layout','图文排版','layout/'], ['jizura','歌词动画','jizura/zh-hans/'] ];
   class ToolSwitcher extends HTMLElement {
     connectedCallback() {
       if (this.shadowRoot) return;

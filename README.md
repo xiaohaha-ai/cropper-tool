@@ -39,3 +39,11 @@ python3 -m http.server 4174
 ## 开源许可
 
 本项目采用 [MIT License](LICENSE) 开源。你可以使用、修改、分发和商用，但需要保留原始版权与许可证声明。
+
+## 歌词动画（JIZURA）
+
+通过首页“歌词动画”进入 `jizura/zh-hans/`，支持歌词编辑、导入音乐、动画预览与视频导出。其他语言版本可在编辑器顶部切换，并可返回工具箱。
+
+项目源自 [852wa/JIZURA](https://github.com/852wa/JIZURA)，原始 MIT 许可和第三方声明保留在 `jizura/LICENSE` 和 `jizura/THIRD_PARTY_NOTICES.md`。歌词及音乐由浏览器本地处理，字体可能从 Google Fonts 加载。
+
+修改 `jizura/src/` 或 `jizura/app/` 后，运行 `python3 jizura/build.py` 重新生成语言版本；已将页面地址配置为本工具站路径。
